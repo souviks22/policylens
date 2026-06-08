@@ -46,7 +46,19 @@ class PDFExtractor:
         text = "\n".join(cleaned_lines)
         text = re.sub(r"\n{3,}", "\n\n", text)
 
+        # If the text looks like one giant line (poor PDF extraction),
+        # insert paragraph breaks at sentence boundaries so diff can be granular.
+        lines = text.split("\n")
+        avg_line_len = sum(len(l) for l in lines) / max(len(lines), 1)
+        if avg_line_len > 200:
+            text = self._insert_sentence_breaks(text)
+
         return text.strip()
+
+    def _insert_sentence_breaks(self, text: str) -> str:
+        """Insert double newlines between sentences for poorly-structured PDFs."""
+        sentences = re.split(r"(?<=[.!?])\s+(?=[A-Z])", text)
+        return "\n\n".join(s.strip() for s in sentences if s.strip())
 
     def _detect_sections(self, text: str) -> List[str]:
         """
@@ -92,6 +104,9 @@ class PDFExtractor:
 
     def get_sentences(self, text: str) -> List[str]:
         """Split text into sentences for granular comparison."""
-        # Simple sentence splitter
+        return self._split_sentences(text)
+
+    def _split_sentences(self, text: str) -> List[str]:
+        """Split text into sentences."""
         sentences = re.split(r"(?<=[.!?])\s+(?=[A-Z])", text)
         return [s.strip() for s in sentences if s.strip() and len(s) > 10]

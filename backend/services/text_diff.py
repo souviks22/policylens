@@ -28,6 +28,8 @@ class TextDiffService:
         """
         Compute paragraph-level diff — better for semantic comparison.
         Groups consecutive changes into logical chunks.
+        For large modified blocks, falls back to sentence-level diff so
+        that a single changed sentence does not flag the whole paragraph.
         """
         paras1 = self._split_paragraphs(text1)
         paras2 = self._split_paragraphs(text2)
@@ -40,7 +42,6 @@ class TextDiffService:
             new_text = "\n\n".join(paras2[j1:j2]).strip() or None
 
             if opcode == "equal":
-                # Only include a representative sample to keep payload small
                 continue
             elif opcode == "insert":
                 chunks.append(DiffChunk(
@@ -63,14 +64,69 @@ class TextDiffService:
                     line_end=i2,
                 ))
             elif opcode == "replace":
+                # If the block is large, do sentence-level diff for granularity
+                if (old_text and len(old_text) > 500) or (new_text and len(new_text) > 500):
+                    sentence_chunks = self._compute_sentence_diff(
+                        old_text or "", new_text or "",
+                        line_offset=i1,
+                    )
+                    chunks.extend(sentence_chunks)
+                else:
+                    chunks.append(DiffChunk(
+                        id=str(uuid.uuid4()),
+                        type=ChangeType.MODIFICATION,
+                        old_text=old_text,
+                        new_text=new_text,
+                        section=self._guess_section(new_text or old_text or ""),
+                        line_start=i1,
+                        line_end=i2,
+                    ))
+
+        return chunks
+
+    def _compute_sentence_diff(self, old_text: str, new_text: str, line_offset: int = 0) -> List[DiffChunk]:
+        """Sentence-level diff for large modified paragraphs."""
+        old_sents = self._split_sentences(old_text)
+        new_sents = self._split_sentences(new_text)
+
+        matcher = difflib.SequenceMatcher(None, old_sents, new_sents, autojunk=False)
+        chunks: List[DiffChunk] = []
+
+        for opcode, i1, i2, j1, j2 in matcher.get_opcodes():
+            o_txt = " ".join(old_sents[i1:i2]).strip() or None
+            n_txt = " ".join(new_sents[j1:j2]).strip() or None
+
+            if opcode == "equal":
+                continue
+            elif opcode == "insert":
+                chunks.append(DiffChunk(
+                    id=str(uuid.uuid4()),
+                    type=ChangeType.ADDITION,
+                    old_text=None,
+                    new_text=n_txt,
+                    section=self._guess_section(n_txt or ""),
+                    line_start=line_offset + j1,
+                    line_end=line_offset + j2,
+                ))
+            elif opcode == "delete":
+                chunks.append(DiffChunk(
+                    id=str(uuid.uuid4()),
+                    type=ChangeType.DELETION,
+                    old_text=o_txt,
+                    new_text=None,
+                    section=self._guess_section(o_txt or ""),
+                    line_start=line_offset + i1,
+                    line_end=line_offset + i2,
+                ))
+            elif opcode == "replace":
                 chunks.append(DiffChunk(
                     id=str(uuid.uuid4()),
                     type=ChangeType.MODIFICATION,
-                    old_text=old_text,
-                    new_text=new_text,
-                    section=self._guess_section(new_text or old_text or ""),
-                    line_start=i1,
-                    line_end=i2,
+                    old_text=o_txt,
+                    new_text=n_txt,
+                    section=self._guess_section(n_txt or o_txt or ""),
+                    line_start=line_offset + i1,
+                    line_end=line_offset + i2,
                 ))
 
         return chunks
@@ -123,6 +179,11 @@ class TextDiffService:
         """Split text into meaningful paragraphs."""
         parts = re.split(r"\n\s*\n", text)
         return [p.strip() for p in parts if p.strip() and len(p.strip()) > 15]
+
+    def _split_sentences(self, text: str) -> List[str]:
+        """Split text into sentences."""
+        sentences = re.split(r"(?<=[.!?])\s+(?=[A-Z])", text)
+        return [s.strip() for s in sentences if s.strip() and len(s) > 10]
 
     def _parse_differ_output(self, diff: List[str]) -> List[DiffChunk]:
         """Parse raw Differ output into structured DiffChunk list."""
