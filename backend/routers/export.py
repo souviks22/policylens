@@ -33,14 +33,19 @@ async def _load_result(comparison_id: str, user_id: str, db: AsyncSession) -> Co
     return result
 
 
+async def _load_annotations(comparison_id: str, db: AsyncSession):
+    return await crud.get_annotations(db, comparison_id)
+
+
 @router.get("/{comparison_id}/pdf")
 async def export_pdf(
     comparison_id: str, 
     db: AsyncSession = Depends(get_db),
     current_user: UserRecord = Depends(get_current_user)):
     result = await _load_result(comparison_id, current_user.id, db)
+    annotations = await _load_annotations(comparison_id, db)
     try:
-        pdf_bytes = generate_pdf(result)
+        pdf_bytes = generate_pdf(result, annotations=annotations)
     except Exception as exc:
         raise HTTPException(status_code=500, detail=f"PDF generation failed: {exc}")
 
@@ -59,8 +64,9 @@ async def export_docx(
     current_user: UserRecord = Depends(get_current_user)
 ):
     result = await _load_result(comparison_id, current_user.id, db)
+    annotations = await _load_annotations(comparison_id, db)
     try:
-        docx_bytes = generate_docx(result)
+        docx_bytes = generate_docx(result, annotations=annotations)
     except Exception as exc:
         raise HTTPException(status_code=500, detail=f"DOCX generation failed: {exc}")
 

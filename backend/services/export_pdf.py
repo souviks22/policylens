@@ -4,8 +4,9 @@ export_pdf.py  —  Generates a professional PDF comparison report using reportl
 from __future__ import annotations
 
 import io
+from html import escape
 from datetime import datetime
-from typing import List
+from typing import Any, List, Optional, Sequence
 
 from reportlab.lib import colors
 from reportlab.lib.enums import TA_CENTER, TA_LEFT, TA_JUSTIFY
@@ -133,10 +134,11 @@ def _header_footer(canvas, doc, doc1_name: str, doc2_name: str):
 
 # ── Main generator ────────────────────────────────────────────────────────────────
 
-def generate_pdf(result: ComparisonResult) -> bytes:
+def generate_pdf(result: ComparisonResult, annotations: Optional[Sequence[Any]] = None) -> bytes:
     buf = io.BytesIO()
     ST = _build_styles()
     summary = result.summary
+    annotation_map = _group_annotations(annotations or [])
 
     doc = BaseDocTemplate(
         buf,
@@ -233,6 +235,50 @@ def generate_pdf(result: ComparisonResult) -> bytes:
     story.append(stats_table)
     story.append(Spacer(1, 5 * mm))
 
+    # ── Document statistics rendered in the frontend ────────────────────────────
+    story.append(Paragraph("Document Statistics", ST["subsection_head"]))
+    doc_stats_rows = [[
+        Paragraph("<b>Document</b>", _th_style()),
+        Paragraph("<b>Pages</b>", _th_style()),
+        Paragraph("<b>Words</b>", _th_style()),
+        Paragraph("<b>Characters</b>", _th_style()),
+        Paragraph("<b>Sections</b>", _th_style()),
+    ]]
+    for label, stats in [
+        ("Document A (Legacy)", result.doc1_stats),
+        ("Document B (Updated)", result.doc2_stats),
+    ]:
+        doc_stats_rows.append([
+            Paragraph(label, _cell_style()),
+            Paragraph(str(stats.total_pages), _cell_style()),
+            Paragraph(f"{stats.total_words:,}", _cell_style()),
+            Paragraph(f"{stats.total_characters:,}", _cell_style()),
+            Paragraph(str(len(stats.sections_detected)), _cell_style()),
+        ])
+    doc_stats_tbl = Table(
+        doc_stats_rows,
+        colWidths=[48 * mm, 22 * mm, 26 * mm, 28 * mm, W - 2 * MARGIN - 124 * mm],
+        repeatRows=1,
+    )
+    doc_stats_tbl.setStyle(TableStyle([
+        ("BACKGROUND", (0, 0), (-1, 0), C_AMBER),
+        ("GRID", (0, 0), (-1, -1), 0.3, C_BORDER),
+        ("TOPPADDING", (0, 0), (-1, -1), 4),
+        ("BOTTOMPADDING", (0, 0), (-1, -1), 4),
+        ("VALIGN", (0, 0), (-1, -1), "TOP"),
+    ]))
+    story.append(doc_stats_tbl)
+
+    for label, sections in [
+        ("Document A Detected Sections", result.doc1_sections),
+        ("Document B Detected Sections", result.doc2_sections),
+    ]:
+        if sections:
+            story.append(Spacer(1, 2 * mm))
+            story.append(Paragraph(label, ST["subsection_head"]))
+            for section_name in sections:
+                story.append(Paragraph(f"• {_safe(section_name)}", ST["bullet"]))
+
     # ── Executive Summary ────────────────────────────────────────────────────────
     story.append(Paragraph("Executive Summary", ST["section_head"]))
     story.append(HRFlowable(width="100%", thickness=0.5, color=C_BORDER))
@@ -262,11 +308,23 @@ def generate_pdf(result: ComparisonResult) -> bytes:
             # FIX: use a fixed gap, zero out its cell padding so width never goes negative
             GAP = 4 * mm
             half = (full_w - GAP) / 2
-            left  = _side_box(side_items[0][0], side_items[0][1], side_items[0][2], side_items[0][3], half)
-            right = _side_box(side_items[1][0], side_items[1][1], side_items[1][2], side_items[1][3], half)
-            two_col = Table([[left, "", right]], colWidths=[half, GAP, half])
+            left  = _side_box_content(side_items[0][0], side_items[0][1], side_items[0][2], half)
+            right = _side_box_content(side_items[1][0], side_items[1][1], side_items[1][2], half)
+            two_col = Table([[left, "", right]], colWidths=[half, GAP, half], splitByRow=1)
             two_col.setStyle(TableStyle([
                 ("VALIGN",        (0, 0), (-1, -1), "TOP"),
+                ("BACKGROUND",    (0, 0), (0, 0), side_items[0][2]),
+                ("BACKGROUND",    (2, 0), (2, 0), side_items[1][2]),
+                ("BOX",           (0, 0), (0, 0), 0.5, side_items[0][3]),
+                ("BOX",           (2, 0), (2, 0), 0.5, side_items[1][3]),
+                ("TOPPADDING",    (0, 0), (0, 0), 6),
+                ("BOTTOMPADDING", (0, 0), (0, 0), 6),
+                ("LEFTPADDING",   (0, 0), (0, 0), 8),
+                ("RIGHTPADDING",  (0, 0), (0, 0), 8),
+                ("TOPPADDING",    (2, 0), (2, 0), 6),
+                ("BOTTOMPADDING", (2, 0), (2, 0), 6),
+                ("LEFTPADDING",   (2, 0), (2, 0), 8),
+                ("RIGHTPADDING",  (2, 0), (2, 0), 8),
                 # Zero out all padding on the gap column so its cell never has negative available width
                 ("LEFTPADDING",   (1, 0), (1, 0), 0),
                 ("RIGHTPADDING",  (1, 0), (1, 0), 0),
@@ -333,8 +391,8 @@ def generate_pdf(result: ComparisonResult) -> bytes:
     story.append(HRFlowable(width="100%", thickness=0.5, color=C_BORDER))
 
     for idx, chg in enumerate(result.semantic_changes, 1):
-        block = _change_detail_block(idx, chg, ST, W - 2 * MARGIN)
-        story.append(KeepTogether(block))
+        block = _change_detail_block(idx, chg, ST, W - 2 * MARGIN, annotation_map.get(chg.id, []))
+        story.extend(block)
         story.append(Spacer(1, 3 * mm))
 
     # ── Section analysis ─────────────────────────────────────────────────────────
@@ -347,7 +405,25 @@ def generate_pdf(result: ComparisonResult) -> bytes:
             f"Overall structural similarity: {result.section_analysis.overall_structural_similarity * 100:.1f}%",
             ST["body_bold"],
         ))
+        counts = {
+            "unchanged": sum(1 for m in result.section_analysis.matches if m.match_type == "unchanged"),
+            "modified": sum(1 for m in result.section_analysis.matches if m.match_type == "modified"),
+            "added": sum(1 for m in result.section_analysis.matches if m.match_type == "added"),
+            "deleted": sum(1 for m in result.section_analysis.matches if m.match_type == "deleted"),
+        }
+        story.append(Paragraph(
+            "Section counts: "
+            f"unchanged={counts['unchanged']}, modified={counts['modified']}, "
+            f"added={counts['added']}, deleted={counts['deleted']}",
+            ST["small"],
+        ))
         story.append(Spacer(1, 2 * mm))
+
+        if result.section_analysis.semantic_clone_pairs:
+            story.append(Paragraph("Semantic Clone Sections", ST["subsection_head"]))
+            for h1, h2 in result.section_analysis.semantic_clone_pairs:
+                story.append(Paragraph(f"• {_safe(h1)} ↔ {_safe(h2)}", ST["bullet"]))
+            story.append(Spacer(1, 2 * mm))
 
         sa_col = [(W - 2 * MARGIN - 18 * mm) / 3] * 3 + [18 * mm]
         sa_header = [Paragraph(h, _th_style()) for h in ["Doc A Section", "Doc B Section", "Status", "Score"]]
@@ -362,7 +438,7 @@ def generate_pdf(result: ComparisonResult) -> bytes:
             ("LEFTPADDING",   (0, 0), (-1, -1), 5),
             ("VALIGN",        (0, 0), (-1, -1), "TOP"),
         ]
-        for i, m in enumerate(result.section_analysis.matches[:40]):
+        for i, m in enumerate(result.section_analysis.matches):
             bg = colors.HexColor("#f9f8f5") if i % 2 == 0 else C_WHITE
             sa_styles.append(("BACKGROUND", (0, i + 1), (-1, i + 1), bg))
             sa_rows.append([
@@ -374,6 +450,70 @@ def generate_pdf(result: ComparisonResult) -> bytes:
         sa_tbl = Table(sa_rows, colWidths=sa_col, repeatRows=1)
         sa_tbl.setStyle(TableStyle(sa_styles))
         story.append(sa_tbl)
+
+        story.append(PageBreak())
+        story.append(Paragraph("Section Match Details", ST["section_head"]))
+        story.append(HRFlowable(width="100%", thickness=0.5, color=C_BORDER))
+        for idx, m in enumerate(result.section_analysis.matches, 1):
+            story.append(Paragraph(
+                f"{idx}. {_safe(m.match_type.title())}: {_safe(m.doc1_section or 'Not present')} / {_safe(m.doc2_section or 'Not present')}",
+                ST["subsection_head"],
+            ))
+            story.append(Paragraph(f"Similarity score: {m.similarity_score:.4f}", ST["small"]))
+            story.append(_side_by_side_box(
+                f"DOCUMENT A - {m.doc1_section or 'Not present'}",
+                m.doc1_content or "Section not present in Document A",
+                C_CRIMSON,
+                f"DOCUMENT B - {m.doc2_section or 'Not present'}",
+                m.doc2_content or "Section not present in Document B",
+                C_JADE,
+                W - 2 * MARGIN,
+            ))
+            story.append(Spacer(1, 2 * mm))
+
+        if result.section_analysis.similarity_matrix:
+            story.append(PageBreak())
+            story.append(Paragraph("Section Cosine Similarity Matrix", ST["section_head"]))
+            story.append(HRFlowable(width="100%", thickness=0.5, color=C_BORDER))
+            story.append(Paragraph(
+                f"Rows = Document A ({len(result.section_analysis.doc1_section_labels)} sections); "
+                f"columns = Document B ({len(result.section_analysis.doc2_section_labels)} sections).",
+                ST["small"],
+            ))
+            for i, row in enumerate(result.section_analysis.similarity_matrix):
+                label = result.section_analysis.doc1_section_labels[i] if i < len(result.section_analysis.doc1_section_labels) else f"Row {i + 1}"
+                values = " | ".join(f"{v:.3f}" for v in row)
+                story.extend(_long_text_flowables(f"{label}: {values}", ST["code"], chunk_size=1800))
+
+    # ── Diff chunks rendered by the frontend diff tab ───────────────────────────
+    story.append(PageBreak())
+    story.append(Paragraph("Text Diff - Changed Blocks", ST["section_head"]))
+    story.append(HRFlowable(width="100%", thickness=0.5, color=C_BORDER))
+    changed_chunks = [c for c in result.diff_chunks if c.type != ChangeType.UNCHANGED]
+    if not changed_chunks:
+        story.append(Paragraph("No textual differences detected.", ST["body"]))
+    for idx, chunk in enumerate(changed_chunks, 1):
+        story.append(Paragraph(
+            f"{idx}. {_change_label(chunk.type)} - {_safe(chunk.section or 'General')}",
+            ST["subsection_head"],
+        ))
+        story.append(_side_by_side_box(
+            "DOCUMENT A", chunk.old_text or "—", C_CRIMSON,
+            "DOCUMENT B", chunk.new_text or "—", C_JADE,
+            W - 2 * MARGIN,
+        ))
+        story.append(Spacer(1, 2 * mm))
+
+    # ── Full source text rendered in the side-by-side frontend view ─────────────
+    story.append(PageBreak())
+    story.append(Paragraph("Full Source Text - Document A", ST["section_head"]))
+    story.append(HRFlowable(width="100%", thickness=0.5, color=C_BORDER))
+    story.extend(_long_text_flowables(result.doc1_content, ST["code"]))
+
+    story.append(PageBreak())
+    story.append(Paragraph("Full Source Text - Document B", ST["section_head"]))
+    story.append(HRFlowable(width="100%", thickness=0.5, color=C_BORDER))
+    story.extend(_long_text_flowables(result.doc2_content, ST["code"]))
 
     doc.build(story)
     buf.seek(0)
@@ -419,7 +559,7 @@ def _side_box(title: str, items: List[str], bg_color, title_color, width) -> Tab
     for item in items:
         content.append(Paragraph(f"• {item}", ParagraphStyle(
             "bi", fontSize=8, textColor=C_BLACK, fontName="Helvetica", leading=12, leftIndent=8)))
-    tbl = Table([[content]], colWidths=[width])
+    tbl = Table([[content]], colWidths=[width], splitByRow=1)
     tbl.setStyle(TableStyle([
         ("BACKGROUND",    (0, 0), (-1, -1), bg_color),
         ("TOPPADDING",    (0, 0), (-1, -1), 6),
@@ -431,12 +571,26 @@ def _side_box(title: str, items: List[str], bg_color, title_color, width) -> Tab
     return tbl
 
 
-def _change_detail_block(idx: int, chg: SemanticChange, ST: dict, full_width: float) -> List:
+def _side_box_content(title: str, items: List[str], title_color, width) -> Paragraph:
+    parts = [f'<font size="9" color="{title_color.hexval()}"><b>{_safe(title)}</b></font>']
+    for item in items:
+        parts.append(f'<font size="8" color="{C_BLACK.hexval()}">• {_safe(item)}</font>')
+    return Paragraph("<br/>".join(parts), ParagraphStyle(
+        "sb", fontSize=8, fontName="Helvetica", leading=12, spaceAfter=2))
+
+
+def _change_detail_block(
+    idx: int,
+    chg: SemanticChange,
+    ST: dict,
+    full_width: float,
+    annotations: Sequence[Any],
+) -> List:
     ct_color, ct_bg = CHANGE_COLOR.get(chg.change_type, (C_MUTED, C_BORDER))
     il_color, il_bg = IMPACT_COLOR.get(chg.impact_level, (C_MUTED, C_BORDER))
 
     header_left = Paragraph(
-        f'<b>{idx}. {chg.summary}</b>',
+        f'<b>{idx}. {_safe(chg.summary)}</b>',
         ParagraphStyle("ch", fontSize=9, fontName="Helvetica-Bold", textColor=C_BLACK))
 
     badges = Table([[
@@ -473,31 +627,24 @@ def _change_detail_block(idx: int, chg: SemanticChange, ST: dict, full_width: fl
     # Section label
     if chg.section and chg.section != "General":
         block.append(Paragraph(
-            f"Section: {chg.section}",
+            f"Section: {_safe(chg.section)}",
             ParagraphStyle("sec", fontSize=7, textColor=C_MUTED, fontName="Helvetica",
                            leftIndent=8, spaceAfter=2, spaceBefore=2)))
 
     # Before / After
     if chg.old_content or chg.new_content:
-        half = (full_width - 3 * mm) / 2
-        before_cell = _text_box("BEFORE", chg.old_content or "(not present)", C_CRIMSON, half)
-        after_cell  = _text_box("AFTER",  chg.new_content or "(not present)",  C_JADE,    half)
-        ba = Table([[before_cell, "", after_cell]], colWidths=[half, 3 * mm, half])
-        ba.setStyle(TableStyle([
-            ("VALIGN",        (0, 0), (-1, -1), "TOP"),
-            # Zero out padding on the gap column
-            ("LEFTPADDING",   (1, 0), (1, 0), 0),
-            ("RIGHTPADDING",  (1, 0), (1, 0), 0),
-            ("TOPPADDING",    (1, 0), (1, 0), 0),
-            ("BOTTOMPADDING", (1, 0), (1, 0), 0),
-        ]))
+        ba = _side_by_side_box(
+            "BEFORE", chg.old_content or "(not present)", C_CRIMSON,
+            "AFTER",  chg.new_content or "(not present)", C_JADE,
+            full_width,
+        )
         block.append(Spacer(1, 1.5 * mm))
         block.append(ba)
 
     # Explanation
     if chg.explanation:
         block.append(Spacer(1, 1.5 * mm))
-        block.append(Paragraph(f"<b>Analysis:</b> {chg.explanation}",
+        block.append(Paragraph(f"<b>Analysis:</b> {_safe(chg.explanation)}",
             ParagraphStyle("exp", fontSize=8, fontName="Helvetica", textColor=C_BLACK,
                            leading=12, leftIndent=8, alignment=TA_JUSTIFY)))
 
@@ -514,7 +661,7 @@ def _change_detail_block(idx: int, chg: SemanticChange, ST: dict, full_width: fl
         for label, text in impact_items:
             impact_cells.append(Paragraph(
                 f'<font size="7" color="#7a7464"><b>{label.upper()}</b></font><br/>'
-                f'<font size="8">{text[:150]}</font>',
+                f'<font size="8">{_safe(text)}</font>',
                 ParagraphStyle("imp", fontSize=8, fontName="Helvetica",
                                textColor=C_BLACK, leading=12, leftIndent=4)))
         ig = Table([impact_cells], colWidths=[iw] * len(impact_cells))
@@ -536,25 +683,163 @@ def _change_detail_block(idx: int, chg: SemanticChange, ST: dict, full_width: fl
             ParagraphStyle("rh", fontSize=8, fontName="Helvetica-Bold",
                            textColor=C_AMBER, leftIndent=8)))
         for r in chg.recommendations:
-            block.append(Paragraph(f"→ {r}",
+            block.append(Paragraph(f"→ {_safe(r)}",
                 ParagraphStyle("ri", fontSize=8, fontName="Helvetica",
                                textColor=C_BLACK, leftIndent=16, leading=12)))
+
+    if annotations:
+        block.append(Spacer(1, 1.5 * mm))
+        block.append(Paragraph("<b>Comments:</b>",
+            ParagraphStyle("ah", fontSize=8, fontName="Helvetica-Bold",
+                           textColor=C_AMBER, leftIndent=8)))
+        for ann in annotations:
+            status = "resolved" if bool(_ann_get(ann, "resolved")) else "open"
+            created = _ann_get(ann, "created_at")
+            author = _ann_get(ann, "author") or "Reviewer"
+            text = _ann_get(ann, "text") or ""
+            block.append(Paragraph(
+                f"• [{status}] {_safe(str(author))} ({_safe(str(created))}): {_safe(str(text))}",
+                ParagraphStyle("ai", fontSize=8, fontName="Helvetica",
+                               textColor=C_BLACK, leftIndent=16, leading=12),
+            ))
 
     return block
 
 
-def _text_box(label: str, text: str, color, width: float) -> Table:
-    content = Paragraph(
-        f'<font size="7" color="{color.hexval()}"><b>{label}</b></font><br/>'
-        f'<font size="8" fontName="Courier">{text[:400]}</font>',
+def _text_box(label: str, text: str, color, width: float) -> Paragraph:
+    return Paragraph(
+        f'<font size="7" color="{color.hexval()}"><b>{_safe(label)}</b></font><br/>'
+        f'<font size="8" fontName="Courier">{_safe(text)}</font>',
         ParagraphStyle("tb", fontSize=8, fontName="Helvetica",
                        textColor=C_BLACK, leading=11))
-    tbl = Table([[content]], colWidths=[width])
+
+
+def _long_text_flowables(text: str, style: ParagraphStyle, chunk_size: int = 2400) -> List:
+    text = text or ""
+    if not text:
+        return [Paragraph("(empty)", style)]
+    flowables: List = []
+    for start in range(0, len(text), chunk_size):
+        flowables.append(Paragraph(_safe(text[start:start + chunk_size]).replace("\n", "<br/>"), style))
+        flowables.append(Spacer(1, 1 * mm))
+    return flowables
+
+
+def _safe(value: str) -> str:
+    return escape(str(value), quote=False)
+
+
+def _ann_get(annotation: Any, key: str):
+    if isinstance(annotation, dict):
+        return annotation.get(key)
+    return getattr(annotation, key, None)
+
+
+def _group_annotations(annotations: Sequence[Any]) -> dict[str, list[Any]]:
+    grouped: dict[str, list[Any]] = {}
+    for ann in annotations:
+        change_id = _ann_get(ann, "change_id")
+        if not change_id:
+            continue
+        grouped.setdefault(change_id, []).append(ann)
+    return grouped
+
+
+def _chunk_text(text: str, chunk_size: int) -> List[str]:
+    """Split *text* into chunks so that no single table row becomes too
+    tall to fit on a page."""
+    if not text:
+        return []
+    chunks: List[str] = []
+    for start in range(0, len(text), chunk_size):
+        chunks.append(text[start:start + chunk_size])
+    return chunks
+
+
+def _side_by_side_box(
+    left_label: str,
+    left_text: str,
+    left_color,
+    right_label: str,
+    right_text: str,
+    right_color,
+    full_width: float,
+    chunk_size: int = 2400,
+) -> Table:
+    """Return a side-by-side comparison table that can split across pages.
+
+    Text is broken into chunks so that no single row exceeds the available
+    frame height, avoiding the ``too large on page`` reportlab error.
+    """
+    half = (full_width - 3 * mm) / 2
+    gap = 3 * mm
+
+    left_chunks = _chunk_text(left_text, chunk_size) or ["(not present)"]
+    right_chunks = _chunk_text(right_text, chunk_size) or ["(not present)"]
+    max_rows = max(len(left_chunks), len(right_chunks))
+
+    rows = []
+    # Header row
+    rows.append([
+        Paragraph(
+            f'<font size="7" color="{left_color.hexval()}"><b>{_safe(left_label)}</b></font>',
+            ParagraphStyle("sbl", fontSize=8, fontName="Helvetica",
+                           textColor=C_BLACK, leading=11),
+        ),
+        "",
+        Paragraph(
+            f'<font size="7" color="{right_color.hexval()}"><b>{_safe(right_label)}</b></font>',
+            ParagraphStyle("sbr", fontSize=8, fontName="Helvetica",
+                           textColor=C_BLACK, leading=11),
+        ),
+    ])
+
+    for i in range(max_rows):
+        lchunk = left_chunks[i] if i < len(left_chunks) else ""
+        rchunk = right_chunks[i] if i < len(right_chunks) else ""
+        rows.append([
+            Paragraph(
+                f'<font size="8" fontName="Courier">{_safe(lchunk)}</font>',
+                ParagraphStyle("sbc", fontSize=8, fontName="Helvetica",
+                               textColor=C_BLACK, leading=11),
+            ),
+            "",
+            Paragraph(
+                f'<font size="8" fontName="Courier">{_safe(rchunk)}</font>',
+                ParagraphStyle("sbc", fontSize=8, fontName="Helvetica",
+                               textColor=C_BLACK, leading=11),
+            ),
+        ])
+
+    tbl = Table(rows, colWidths=[half, gap, half], splitByRow=1)
     tbl.setStyle(TableStyle([
-        ("BACKGROUND",    (0, 0), (-1, -1), colors.HexColor("#f9f8f5")),
-        ("BOX",           (0, 0), (-1, -1), 0.5, color),
-        ("TOPPADDING",    (0, 0), (-1, -1), 5),
-        ("BOTTOMPADDING", (0, 0), (-1, -1), 5),
-        ("LEFTPADDING",   (0, 0), (-1, -1), 6),
+        ("VALIGN", (0, 0), (-1, -1), "TOP"),
+        ("BACKGROUND", (0, 1), (0, -1), colors.HexColor("#f9f8f5")),
+        ("BACKGROUND", (2, 1), (2, -1), colors.HexColor("#f9f8f5")),
+        ("BOX", (0, 0), (0, -1), 0.5, left_color),
+        ("BOX", (2, 0), (2, -1), 0.5, right_color),
+        # Header padding
+        ("TOPPADDING", (0, 0), (0, 0), 5),
+        ("BOTTOMPADDING", (0, 0), (0, 0), 5),
+        ("LEFTPADDING", (0, 0), (0, 0), 6),
+        ("RIGHTPADDING", (0, 0), (0, 0), 6),
+        ("TOPPADDING", (2, 0), (2, 0), 5),
+        ("BOTTOMPADDING", (2, 0), (2, 0), 5),
+        ("LEFTPADDING", (2, 0), (2, 0), 6),
+        ("RIGHTPADDING", (2, 0), (2, 0), 6),
+        # Content padding
+        ("TOPPADDING", (0, 1), (0, -1), 3),
+        ("BOTTOMPADDING", (0, 1), (0, -1), 3),
+        ("LEFTPADDING", (0, 1), (0, -1), 6),
+        ("RIGHTPADDING", (0, 1), (0, -1), 6),
+        ("TOPPADDING", (2, 1), (2, -1), 3),
+        ("BOTTOMPADDING", (2, 1), (2, -1), 3),
+        ("LEFTPADDING", (2, 1), (2, -1), 6),
+        ("RIGHTPADDING", (2, 1), (2, -1), 6),
+        # Gap column – zero padding
+        ("LEFTPADDING", (1, 0), (1, -1), 0),
+        ("RIGHTPADDING", (1, 0), (1, -1), 0),
+        ("TOPPADDING", (1, 0), (1, -1), 0),
+        ("BOTTOMPADDING", (1, 0), (1, -1), 0),
     ]))
     return tbl
