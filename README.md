@@ -61,52 +61,6 @@ flowchart LR
   CRUD --> DB[(SQLite via SQLAlchemy async<br/>policylens.db)]
 ```
 
-## Repository Layout
-
-```text
-policylense/
-├── backend/
-│   ├── main.py                    # FastAPI app, CORS, lifespan, router registration
-│   ├── config.py                  # Pydantic settings loaded from backend/.env
-│   ├── routers/
-│   │   ├── auth.py                # Register, login, current user
-│   │   ├── documents.py           # PDF upload and extraction
-│   │   ├── comparison.py          # Diff, semantic analysis, section alignment, history
-│   │   ├── annotations.py         # Create, list, resolve, delete annotations
-│   │   └── export.py              # PDF/DOCX report downloads
-│   ├── services/
-│   │   ├── auth_service.py        # JWT and password helpers
-│   │   ├── pdf_extractor.py       # pdfplumber text extraction
-│   │   ├── text_diff.py           # difflib paragraph/line/inline diff helpers
-│   │   ├── semantic_analyzer.py   # OpenAI semantic/compliance analysis
-│   │   ├── embeddings.py          # Batched embedding calls and cosine similarity
-│   │   ├── section_aligner.py     # Section splitting, matching, similarity matrix
-│   │   ├── export_pdf.py          # ReportLab PDF generation
-│   │   └── export_docx.py         # python-docx report generation
-│   ├── database/
-│   │   ├── connection.py          # Async SQLAlchemy engine/session setup
-│   │   ├── models.py              # User, document, comparison, annotation tables
-│   │   └── crud.py                # Persistence helpers
-│   ├── models/schemas.py          # Pydantic request/response models
-│   ├── requirements.txt
-│   └── Dockerfile
-├── frontend/
-│   ├── app/
-│   │   ├── page.tsx               # Protected upload/analyze/results flow
-│   │   ├── login/page.tsx         # Sign in and registration screen
-│   │   ├── history/page.tsx       # Saved comparison list and reopen/delete
-│   │   ├── layout.tsx             # App shell and providers
-│   │   └── globals.css            # Tailwind theme styles
-│   ├── components/                # Dashboard, diff, summary, annotations, upload UI
-│   ├── context/AuthContext.tsx    # Client-side auth state and route guard
-│   ├── lib/api.ts                 # Typed backend API functions
-│   ├── types/index.ts             # Frontend TypeScript API types
-│   ├── package.json
-│   └── Dockerfile
-├── docker-compose.yml
-└── README.md
-```
-
 ## Data Flow
 
 1. A user registers or logs in through `/login`; the frontend stores the JWT as `pl_token`.
