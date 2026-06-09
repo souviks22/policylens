@@ -3,14 +3,26 @@ from sqlalchemy.orm import DeclarativeBase
 from sqlalchemy import text
 from config import get_settings
 import inspect
+import ssl
+import certifi
 
 settings = get_settings()
 
+ssl_context = ssl.create_default_context(
+    cafile=certifi.where()
+)
+
+if settings.database_url.startswith("postgresql+asyncpg"):
+    connect_args = {"ssl": ssl_context}
+elif settings.database_url.startswith("sqlite+aiosqlite"):
+    connect_args = {"check_same_thread": False}
+else:
+    connect_args = {}
 
 engine = create_async_engine(
     settings.database_url,
     echo=False,
-    connect_args={"check_same_thread": False},
+    connect_args=connect_args
 )
 
 AsyncSessionLocal = async_sessionmaker(

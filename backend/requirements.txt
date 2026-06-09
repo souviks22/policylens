@@ -11,7 +11,8 @@ aiofiles
 numpy
 tiktoken
 sqlalchemy
-aiosqlite
+# aiosqlite
+asyncpg
 greenlet
 reportlab
 python-docx

@@ -71,14 +71,3 @@ class AnnotationRecord(Base):
 
     comparison = relationship("ComparisonRecord", back_populates="annotations", lazy="selectin")
 
-
-class SectionEmbeddingRecord(Base):
-    __tablename__ = "section_embeddings"
-
-    id              = Column(String, primary_key=True, index=True)
-    document_id     = Column(String, ForeignKey("documents.id"), nullable=False)
-    section_heading = Column(String, nullable=True)
-    section_index   = Column(Integer, nullable=False)
-    content         = Column(Text, nullable=False)
-    embedding       = Column(JSON, nullable=False)
-    created_at      = Column(DateTime, default=func.now())
