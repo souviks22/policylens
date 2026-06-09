@@ -1,8 +1,26 @@
 import axios from "axios";
-import type { UploadResponse, ComparisonResult, Annotation, ComparisonListItem } from "@/types";
+import type { UploadResponse, ComparisonResult, Annotation, ComparisonListItem, ChatMessage } from "@/types";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
 const TOKEN_KEY = "pl_token";
+
+
+export async function postChatStream(
+  comparisonId: string,
+  messages: ChatMessage[],
+  token?: string | null
+): Promise<Response> {
+  const authToken = token || (typeof window !== "undefined" ? localStorage.getItem(TOKEN_KEY) : null);
+
+  return fetch(`${API_URL}/api/chat/${comparisonId}`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      ...(authToken ? { Authorization: `Bearer ${authToken}` } : {}),
+    },
+    body: JSON.stringify({ messages }),
+  });
+}
 
 const api = axios.create({ baseURL: API_URL, timeout: 180_000 });
 

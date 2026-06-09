@@ -124,3 +124,5 @@ export interface UploadedDoc {
   pages: number;
   word_count: number;
 }
+
+export type ChatMessage = { role: "user" | "assistant"; content: string };

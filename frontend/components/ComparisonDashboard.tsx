@@ -7,6 +7,7 @@ import SemanticChanges from "./SemanticChanges";
 import DiffViewer from "./DiffViewer";
 import SectionAnalysisTab from "./SectionAnalysis";
 import ImpactBadge from "./ImpactBadge";
+import ComparisonChat from "./ComparisonChat";
 import { cn } from "@/lib/utils";
 import { exportComparison } from "@/lib/api";
 import {
@@ -172,6 +173,13 @@ export default function ComparisonDashboard({ result, onReset }: Props) {
           {activeTab === "diff"     && <DiffViewer result={result} />}
         </div>
       </main>
+
+      {/* Floating chat — always accessible regardless of active tab */}
+      <ComparisonChat
+        comparisonId={result.comparison_id}
+        doc1Name={result.doc1_name}
+        doc2Name={result.doc2_name}
+      />
     </div>
   );
 }
