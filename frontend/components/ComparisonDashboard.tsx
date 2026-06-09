@@ -11,7 +11,7 @@ import ComparisonChat from "./ComparisonChat";
 import { cn } from "@/lib/utils";
 import { exportComparison } from "@/lib/api";
 import {
-  GitCompare, RotateCcw, BarChart3, Diff, Brain,
+  GitCompare, ArrowLeft, BarChart3, Diff, Brain,
   Layers, History, FileDown, Loader2,
 } from "lucide-react";
 import Link from "next/link";
@@ -106,7 +106,7 @@ export default function ComparisonDashboard({ result, onReset }: Props) {
               onClick={onReset}
               className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs text-ink-400 hover:text-ink-200 hover:bg-ink-800 transition-all"
             >
-              <RotateCcw className="w-3.5 h-3.5" /> New
+              <ArrowLeft className="w-3.5 h-3.5" /> Back
             </button>
           </div>
         </div>

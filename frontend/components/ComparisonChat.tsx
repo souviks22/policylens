@@ -66,8 +66,7 @@ function MessageBubble({ msg }: { msg: Message }) {
       )}>
         {msg.loadingState === "typing" ? (
           <span className="flex items-center gap-2 text-ink-500">
-            <Loader2 className="w-3.5 h-3.5 animate-spin" />
-            <span className="text-xs">Typing…</span>
+            <span className="text-xs italic">Typing…</span>
           </span>
         ) : (
           <ReactMarkdown
