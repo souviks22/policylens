@@ -2,7 +2,7 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
-from routers import documents, comparison, annotations, export, auth
+from routers import documents, comparison, annotations, export, auth, chat
 from config import get_settings
 from database.connection import init_db, close_db, db_is_healthy
 
@@ -39,6 +39,7 @@ app.include_router(comparison.router, prefix="/api/comparison", tags=["Compariso
 app.include_router(annotations.router,  prefix="/api/annotations",  tags=["Annotations"])
 app.include_router(export.router,  prefix="/api/export",  tags=["Export"])
 app.include_router(auth.router,  prefix="/api/auth",  tags=["Authentication"])
+app.include_router(chat.router,  prefix="/api/chat",  tags=["Chat"])
 
 @app.get("/health", tags=["Health"])
 async def health_check():
