@@ -6,8 +6,8 @@ import { useAuth } from "@/context/AuthContext";
 import type { ComparisonListItem, ComparisonResult } from "@/types";
 import ComparisonDashboard from "@/components/ComparisonDashboard";
 import {
-  GitCompare, Trash2, ExternalLink, Loader2,
-  AlertTriangle, History, ArrowLeft, LogOut, User,
+  GitCompare, Trash2, ExternalLink, Loader2, ChevronRight,
+  AlertTriangle, History, ArrowLeft, LogOut, User, Database,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import Link from "next/link";
@@ -74,20 +74,29 @@ export default function HistoryPage() {
 
   return (
     <div className="grain min-h-screen flex flex-col">
+
+      {/* ── Header ─────────────────────────────────────────────────────── */}
       <header className="border-b border-ink-800 px-8 py-5 flex items-center gap-3">
-        <div className="flex items-center gap-2.5">
+        <Link href="/" className="flex items-center gap-2.5">
           <div className="w-8 h-8 rounded-lg bg-amber-500 flex items-center justify-center">
             <GitCompare className="w-4 h-4 text-ink-950" />
           </div>
           <span className="font-serif text-xl font-semibold text-ink-100">PolicyLens</span>
-        </div>
-        <div className="flex items-center gap-1.5 text-ink-500 text-sm">
-          <span>/</span>
-          <History className="w-3.5 h-3.5" />
+        </Link>
+
+        <ChevronRight className="w-4 h-4 text-ink-600" />
+        <div className="flex items-center gap-1.5 text-sm text-ink-300">
+          <History className="w-4 h-4 text-amber-500" />
           <span>History</span>
         </div>
 
         <div className="ml-auto flex items-center gap-3">
+          <Link
+            href="/knowledge-base"
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs text-ink-400 hover:text-ink-200 hover:bg-ink-800 transition-all"
+          >
+            <Database className="w-3.5 h-3.5" /> Knowledge Base
+          </Link>
           <Link
             href="/"
             className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs text-ink-400 hover:text-ink-200 hover:bg-ink-800 transition-all"
@@ -115,6 +124,7 @@ export default function HistoryPage() {
         </div>
       </header>
 
+      {/* ── Main ───────────────────────────────────────────────────────── */}
       <main className="flex-1 max-w-5xl mx-auto w-full px-6 py-10">
         <div className="mb-8">
           <h1 className="font-serif text-3xl font-bold text-ink-50 mb-2">Your Comparisons</h1>

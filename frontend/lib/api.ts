@@ -1,26 +1,11 @@
 import axios from "axios";
-import type { UploadResponse, ComparisonResult, Annotation, ComparisonListItem, ChatMessage } from "@/types";
+import type {
+  UploadResponse, ComparisonResult, Annotation, ComparisonListItem,
+  ChatMessage, KbDocument, KbUploadResponse, KbSearchResult, KbStats,
+} from "@/types";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
 const TOKEN_KEY = "pl_token";
-
-
-export async function postChatStream(
-  comparisonId: string,
-  messages: ChatMessage[],
-  token?: string | null
-): Promise<Response> {
-  const authToken = token || (typeof window !== "undefined" ? localStorage.getItem(TOKEN_KEY) : null);
-
-  return fetch(`${API_URL}/api/chat/${comparisonId}`, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      ...(authToken ? { Authorization: `Bearer ${authToken}` } : {}),
-    },
-    body: JSON.stringify({ messages }),
-  });
-}
 
 const api = axios.create({ baseURL: API_URL, timeout: 180_000 });
 
@@ -120,6 +105,71 @@ export async function exportComparison(
   URL.revokeObjectURL(url);
 }
 
+// ── Chatbot ────────────────────────────────────────────────────────────────────
+export async function postChatStream(
+  comparisonId: string,
+  messages: ChatMessage[],
+  token?: string | null
+): Promise<Response> {
+  const authToken = token || (typeof window !== "undefined" ? localStorage.getItem(TOKEN_KEY) : null);
+
+  return fetch(`${API_URL}/api/chat/${comparisonId}`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      ...(authToken ? { Authorization: `Bearer ${authToken}` } : {}),
+    },
+    body: JSON.stringify({ messages }),
+  });
+}
+
+// ── Knowledge Base ──────────────────────────────────────────────────────────────
+export async function uploadKbDocument(
+  file: File,
+  scope: "global" | "personal",
+  description?: string,
+  onProgress?: (pct: number) => void,
+): Promise<KbUploadResponse> {
+  const form = new FormData();
+  form.append("file", file);
+  form.append("scope", scope);
+  if (description) form.append("description", description);
+
+  const res = await api.post<KbUploadResponse>("/api/kb/upload", form, {
+    headers: { "Content-Type": "multipart/form-data" },
+    onUploadProgress: (e) => {
+      if (onProgress && e.total) onProgress(Math.round((e.loaded / e.total) * 100));
+    },
+    // KB indexing can take a while for large docs
+    timeout: 300_000,
+  });
+  return res.data;
+}
+
+export async function listKbDocuments(
+  scope: "all" | "global" | "personal" = "all",
+): Promise<KbDocument[]> {
+  const res = await api.get<KbDocument[]>("/api/kb/documents", { params: { scope } });
+  return res.data;
+}
+
+export async function deleteKbDocument(docId: string): Promise<void> {
+  await api.delete(`/api/kb/documents/${docId}`);
+}
+
+export async function searchKb(query: string, nResults = 5): Promise<KbSearchResult[]> {
+  const res = await api.get<KbSearchResult[]>("/api/kb/search", {
+    params: { query, n_results: nResults },
+  });
+  return res.data;
+}
+
+export async function getKbStats(): Promise<KbStats> {
+  const res = await api.get<KbStats>("/api/kb/stats");
+  return res.data;
+}
+
+// ── Health ─────────────────────────────────────────────────────────────────────
 export async function healthCheck(): Promise<boolean> {
   try { await api.get("/health"); return true; } catch { return false; }
 }

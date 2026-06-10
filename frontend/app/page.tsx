@@ -7,7 +7,7 @@ import type { ComparisonResult, UploadedDoc } from "@/types";
 import FileDropZone from "@/components/FileDropZone";
 import ComparisonDashboard from "@/components/ComparisonDashboard";
 import AnalyzingOverlay from "@/components/AnalyzingOverlay";
-import { FileText, GitCompare, Shield, Zap, History, LogOut, User, Loader2 } from "lucide-react";
+import { FileText, GitCompare, Shield, Zap, History, LogOut, User, Loader2, Database } from "lucide-react";
 import Link from "next/link";
 
 type Step = "upload" | "analyzing" | "results";
@@ -99,14 +99,20 @@ export default function Home() {
     <div className="grain min-h-screen flex flex-col">
       {/* Header */}
       <header className="border-b border-ink-800 px-8 py-5 flex items-center gap-4">
-        <div className="flex items-center gap-2.5">
+        <Link href="/" className="flex items-center gap-2.5">
           <div className="w-8 h-8 rounded-lg bg-amber-500 flex items-center justify-center">
             <GitCompare className="w-4 h-4 text-ink-950" />
           </div>
           <span className="font-serif text-xl font-semibold text-ink-100">PolicyLens</span>
-        </div>
+        </Link>
 
         <div className="ml-auto flex items-center gap-3">
+          <Link
+            href="/knowledge-base"
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs text-ink-400 hover:text-ink-200 hover:bg-ink-800 transition-all"
+          >
+            <Database className="w-3.5 h-3.5" /> Knowledge Base
+          </Link>
           <Link
             href="/history"
             className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs text-ink-400 hover:text-ink-200 hover:bg-ink-800 transition-all"
@@ -143,7 +149,8 @@ export default function Home() {
           </h1>
           <p className="text-ink-400 text-lg leading-relaxed">
             Upload two versions of a policy document and get AI-powered semantic comparison,
-            compliance impact analysis, and an executive change report — in seconds.
+            compliance impact analysis, and an executive change report — grounded in your
+            regulatory knowledge base.
           </p>
         </div>
 
@@ -153,6 +160,7 @@ export default function Home() {
             { icon: FileText, label: "PDF Text Extraction" },
             { icon: GitCompare, label: "Semantic Diff" },
             { icon: Shield, label: "Compliance Analysis" },
+            { icon: Database, label: "RAG Grounding" },
             { icon: Zap, label: "AI-Powered Insights" },
           ].map(({ icon: Icon, label }) => (
             <div key={label} className="flex items-center gap-2 px-4 py-2 rounded-full bg-ink-900 border border-ink-700 text-ink-400 text-sm">
@@ -218,7 +226,10 @@ export default function Home() {
           </button>
 
           <p className="text-center text-xs text-ink-600 mt-4">
-            PDF files only · Max 50 MB each · Analysis takes 30-45 seconds
+            PDF files only · Max 50 MB each · Analysis grounded in your{" "}
+            <Link href="/knowledge-base" className="text-amber-500/70 hover:text-amber-400 transition-colors">
+              regulatory knowledge base
+            </Link>
           </p>
         </div>
       </main>

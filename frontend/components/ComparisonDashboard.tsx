@@ -8,6 +8,8 @@ import DiffViewer from "./DiffViewer";
 import SectionAnalysisTab from "./SectionAnalysis";
 import ImpactBadge from "./ImpactBadge";
 import ComparisonChat from "./ComparisonChat";
+import RagContextPanel from "./RagContextPanel";
+
 import { cn } from "@/lib/utils";
 import { exportComparison } from "@/lib/api";
 import {
@@ -25,18 +27,18 @@ interface Props {
 }
 
 const TABS: { id: Tab; label: string; icon: React.FC<{ className?: string }> }[] = [
-  { id: "summary",  label: "Executive Summary", icon: BarChart3 },
-  { id: "semantic", label: "Semantic Changes",   icon: Brain },
-  { id: "sections", label: "Section Analysis",   icon: Layers },
-  { id: "diff",     label: "Text Diff",          icon: Diff },
+  { id: "summary", label: "Executive Summary", icon: BarChart3 },
+  { id: "semantic", label: "Semantic Changes", icon: Brain },
+  { id: "sections", label: "Section Analysis", icon: Layers },
+  { id: "diff", label: "Text Diff", icon: Diff },
 ];
 
 export default function ComparisonDashboard({ result, onReset }: Props) {
-  const [activeTab, setActiveTab]   = useState<Tab>("summary");
-  const [exporting, setExporting]   = useState<ExportFmt | null>(null);
-  const [exportErr, setExportErr]   = useState<string | null>(null);
+  const [activeTab, setActiveTab] = useState<Tab>("summary");
+  const [exporting, setExporting] = useState<ExportFmt | null>(null);
+  const [exportErr, setExportErr] = useState<string | null>(null);
 
-  const sim        = Math.round((result.text_similarity_ratio ?? 0) * 100);
+  const sim = Math.round((result.text_similarity_ratio ?? 0) * 100);
   const structural = result.section_analysis
     ? Math.round(result.section_analysis.overall_structural_similarity * 100)
     : null;
@@ -60,12 +62,12 @@ export default function ComparisonDashboard({ result, onReset }: Props) {
       <header className="sticky top-0 z-40 border-b border-ink-800 bg-ink-950/90 backdrop-blur-md px-6 py-3">
         <div className="max-w-7xl mx-auto flex items-center gap-3 flex-wrap">
 
-          <div className="flex items-center gap-2.5">
-            <div className="w-7 h-7 rounded-lg bg-amber-500 flex items-center justify-center">
-              <GitCompare className="w-3.5 h-3.5 text-ink-950" />
+          <Link href="/" className="flex items-center gap-2.5">
+            <div className="w-8 h-8 rounded-lg bg-amber-500 flex items-center justify-center">
+              <GitCompare className="w-4 h-4 text-ink-950" />
             </div>
-            <span className="font-serif text-lg font-semibold text-ink-100">PolicyLens</span>
-          </div>
+            <span className="font-serif text-xl font-semibold text-ink-100">PolicyLens</span>
+          </Link>
 
           <div className="hidden md:flex items-center gap-2 text-xs font-mono text-ink-600">
             <span className="px-2 py-0.5 rounded bg-ink-900 border border-ink-800 text-ink-400 max-w-[170px] truncate">
@@ -123,10 +125,10 @@ export default function ComparisonDashboard({ result, onReset }: Props) {
       <div className="border-b border-ink-800 bg-ink-900/40">
         <div className="max-w-7xl mx-auto px-6 py-3 flex flex-wrap items-center gap-x-6 gap-y-1">
           {[
-            { label: "Changes",    value: result.summary.total_changes,     color: "text-ink-100" },
-            { label: "Additions",  value: result.summary.additions,          color: "text-jade-400" },
-            { label: "Deletions",  value: result.summary.deletions,          color: "text-crimson-400" },
-            { label: "Modified",   value: result.summary.modifications,      color: "text-amber-400" },
+            { label: "Changes", value: result.summary.total_changes, color: "text-ink-100" },
+            { label: "Additions", value: result.summary.additions, color: "text-jade-400" },
+            { label: "Deletions", value: result.summary.deletions, color: "text-crimson-400" },
+            { label: "Modified", value: result.summary.modifications, color: "text-amber-400" },
             { label: "Regulatory", value: result.summary.regulatory_updates, color: "text-sapphire-400" },
           ].map((s) => (
             <div key={s.label} className="flex items-baseline gap-1.5">
@@ -167,10 +169,13 @@ export default function ComparisonDashboard({ result, onReset }: Props) {
       {/* Content */}
       <main className="flex-1 px-6 py-8">
         <div className="max-w-7xl mx-auto">
-          {activeTab === "summary"  && <ExecutiveSummary result={result} />}
+          {activeTab === "summary" && <ExecutiveSummary result={result} />}
           {activeTab === "semantic" && <SemanticChanges result={result} />}
           {activeTab === "sections" && <SectionAnalysisTab result={result} />}
-          {activeTab === "diff"     && <DiffViewer result={result} />}
+          {activeTab === "diff" && <DiffViewer result={result} />}
+          
+          {/* RAG context banner — always visible at the bottom */}
+          <RagContextPanel ragContext={result.rag_context} />
         </div>
       </main>
 

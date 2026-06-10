@@ -1,5 +1,7 @@
 export type ChangeType = "addition" | "deletion" | "modification" | "regulatory_update" | "unchanged";
 export type ImpactLevel = "high" | "medium" | "low" | "none";
+export type KbScope = "global" | "personal";
+
 
 export interface UploadResponse {
   file_id: string;
@@ -8,6 +10,7 @@ export interface UploadResponse {
   word_count: number;
   status: string;
 }
+
 
 export interface DiffChunk {
   id: string;
@@ -126,3 +129,71 @@ export interface UploadedDoc {
 }
 
 export type ChatMessage = { role: "user" | "assistant"; content: string };
+
+export interface RagContextSource {
+  source_doc_id: string;
+  source_doc_name: string;
+  scope: KbScope;
+  excerpt: string;
+  relevance_score: number;
+}
+
+export interface RagContextSummary {
+  global_chunks_used: number;
+  personal_chunks_used: number;
+  sources: RagContextSource[];
+}
+
+export interface ComparisonResult {
+  comparison_id: string;
+  doc1_name: string;
+  doc2_name: string;
+  doc1_stats: DocumentStats;
+  doc2_stats: DocumentStats;
+  diff_chunks: DiffChunk[];
+  semantic_changes: SemanticChange[];
+  summary: ComparisonSummary;
+  doc1_content: string;
+  doc2_content: string;
+  doc1_sections: string[];
+  doc2_sections: string[];
+  section_analysis: SectionAnalysis | null;
+  text_similarity_ratio: number;
+  rag_context: RagContextSummary | null;
+}
+
+// ── Knowledge Base ──────────────────────────────────────────────────────────────
+
+export interface KbUploadResponse {
+  doc_id: string;
+  filename: string;
+  scope: KbScope;
+  chunk_count: number;
+  char_count: number;
+  status: string;
+}
+
+export interface KbDocument {
+  id: string;
+  filename: string;
+  description: string | null;
+  scope: KbScope;
+  uploaded_by: string;
+  chunk_count: number;
+  char_count: number;
+  created_at: string;
+}
+
+export interface KbSearchResult {
+  doc_id: string;
+  source_doc_name: string;
+  scope: KbScope;
+  chunk_index: number;
+  excerpt: string;
+  score: number;
+}
+
+export interface KbStats {
+  global_chunks: number;
+  personal_chunks: number;
+}
