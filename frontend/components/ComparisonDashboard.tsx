@@ -26,11 +26,11 @@ interface Props {
   onReset: () => void;
 }
 
-const TABS: { id: Tab; label: string; icon: React.FC<{ className?: string }> }[] = [
-  { id: "summary", label: "Executive Summary", icon: BarChart3 },
-  { id: "semantic", label: "Semantic Changes", icon: Brain },
-  { id: "sections", label: "Section Analysis", icon: Layers },
-  { id: "diff", label: "Text Diff", icon: Diff },
+const TABS: { id: Tab; label: string; shortLabel: string; icon: React.FC<{ className?: string }> }[] = [
+  { id: "summary", label: "Executive Summary", shortLabel: "Summary", icon: BarChart3 },
+  { id: "semantic", label: "Semantic Changes", shortLabel: "Semantic", icon: Brain },
+  { id: "sections", label: "Section Analysis", shortLabel: "Sections", icon: Layers },
+  { id: "diff", label: "Text Diff", shortLabel: "Diff", icon: Diff },
 ];
 
 export default function ComparisonDashboard({ result, onReset }: Props) {
@@ -59,56 +59,57 @@ export default function ComparisonDashboard({ result, onReset }: Props) {
     <div className="grain min-h-screen flex flex-col">
 
       {/* Header */}
-      <header className="sticky top-0 z-40 border-b border-ink-800 bg-ink-950/90 backdrop-blur-md px-6 py-3">
-        <div className="max-w-7xl mx-auto flex items-center gap-3 flex-wrap">
+      <header className="sticky top-0 z-40 border-b border-ink-800 bg-ink-950/90 backdrop-blur-md px-3 sm:px-6 py-3">
+        <div className="max-w-7xl mx-auto flex items-center gap-2 sm:gap-3 flex-wrap">
 
-          <Link href="/" className="flex items-center gap-2.5">
-            <div className="w-8 h-8 rounded-lg bg-amber-500 flex items-center justify-center">
-              <GitCompare className="w-4 h-4 text-ink-950" />
+          <Link href="/" className="flex items-center gap-2">
+            <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-lg bg-amber-500 flex items-center justify-center">
+              <GitCompare className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-ink-950" />
             </div>
-            <span className="font-serif text-xl font-semibold text-ink-100">PolicyLens</span>
+            <span className="font-serif text-base sm:text-xl font-semibold text-ink-100 hidden xs:inline">PolicyLens</span>
           </Link>
 
-          <div className="hidden md:flex items-center gap-2 text-xs font-mono text-ink-600">
-            <span className="px-2 py-0.5 rounded bg-ink-900 border border-ink-800 text-ink-400 max-w-[170px] truncate">
+          <div className="hidden lg:flex items-center gap-2 text-xs font-mono text-ink-600">
+            <span className="px-2 py-0.5 rounded bg-ink-900 border border-ink-800 text-ink-400 max-w-[140px] truncate">
               {result.doc1_name}
             </span>
             <GitCompare className="w-3 h-3" />
-            <span className="px-2 py-0.5 rounded bg-ink-900 border border-ink-800 text-ink-400 max-w-[170px] truncate">
+            <span className="px-2 py-0.5 rounded bg-ink-900 border border-ink-800 text-ink-400 max-w-[140px] truncate">
               {result.doc2_name}
             </span>
           </div>
 
-          <div className="ml-auto flex items-center gap-2">
+          <div className="ml-auto flex items-center gap-1 sm:gap-2">
             <ImpactBadge level={result.summary.overall_impact_level} />
 
-            {/* Export */}
+            {/* Export buttons */}
             {(["pdf", "docx"] as ExportFmt[]).map((fmt) => (
               <button
                 key={fmt}
                 onClick={() => handleExport(fmt)}
                 disabled={!!exporting}
                 title={`Download ${fmt.toUpperCase()} report`}
-                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs bg-ink-800 text-ink-300 hover:bg-ink-700 hover:text-ink-100 disabled:opacity-40 transition-all"
+                className="flex items-center gap-1 sm:gap-1.5 px-2 sm:px-3 py-1.5 rounded-lg text-xs bg-ink-800 text-ink-300 hover:bg-ink-700 hover:text-ink-100 disabled:opacity-40 transition-all"
               >
                 {exporting === fmt
                   ? <Loader2 className="w-3.5 h-3.5 animate-spin" />
                   : <FileDown className="w-3.5 h-3.5" />}
-                {fmt.toUpperCase()}
+                <span className="hidden sm:inline">{fmt.toUpperCase()}</span>
               </button>
             ))}
 
             <Link
               href="/history"
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs text-ink-400 hover:text-ink-200 hover:bg-ink-800 transition-all"
+              className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs text-ink-400 hover:text-ink-200 hover:bg-ink-800 transition-all"
             >
               <History className="w-3.5 h-3.5" /> History
             </Link>
             <button
               onClick={onReset}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs text-ink-400 hover:text-ink-200 hover:bg-ink-800 transition-all"
+              className="flex items-center gap-1 sm:gap-1.5 px-2 sm:px-3 py-1.5 rounded-lg text-xs text-ink-400 hover:text-ink-200 hover:bg-ink-800 transition-all"
             >
-              <ArrowLeft className="w-3.5 h-3.5" /> Back
+              <ArrowLeft className="w-3.5 h-3.5" />
+              <span className="hidden sm:inline">Back</span>
             </button>
           </div>
         </div>
@@ -123,7 +124,7 @@ export default function ComparisonDashboard({ result, onReset }: Props) {
 
       {/* Quick stats */}
       <div className="border-b border-ink-800 bg-ink-900/40">
-        <div className="max-w-7xl mx-auto px-6 py-3 flex flex-wrap items-center gap-x-6 gap-y-1">
+        <div className="max-w-7xl mx-auto px-3 sm:px-6 py-2.5 sm:py-3 flex flex-wrap items-center gap-x-3 sm:gap-x-6 gap-y-1">
           {[
             { label: "Changes", value: result.summary.total_changes, color: "text-ink-100" },
             { label: "Additions", value: result.summary.additions, color: "text-jade-400" },
@@ -131,55 +132,57 @@ export default function ComparisonDashboard({ result, onReset }: Props) {
             { label: "Modified", value: result.summary.modifications, color: "text-amber-400" },
             { label: "Regulatory", value: result.summary.regulatory_updates, color: "text-sapphire-400" },
           ].map((s) => (
-            <div key={s.label} className="flex items-baseline gap-1.5">
-              <span className={cn("text-lg font-bold font-mono", s.color)}>{s.value}</span>
+            <div key={s.label} className="flex items-baseline gap-1 sm:gap-1.5">
+              <span className={`text-base sm:text-lg font-bold font-mono ${s.color}`}>{s.value}</span>
               <span className="text-xs text-ink-600">{s.label}</span>
             </div>
           ))}
-          <div className="ml-auto flex items-center gap-4 text-xs text-ink-600">
+          <div className="ml-auto flex items-center gap-2 sm:gap-4 text-xs text-ink-600">
             <span>Text <span className="text-ink-400 font-mono">{sim}%</span></span>
             {structural !== null && (
-              <span>Structural <span className="text-ink-400 font-mono">{structural}%</span></span>
+              <span className="hidden sm:inline">Structural <span className="text-ink-400 font-mono">{structural}%</span></span>
             )}
-            <span className="font-mono text-ink-700">{result.comparison_id.slice(0, 8)}</span>
+            <span className="font-mono text-ink-700 hidden sm:inline">{result.comparison_id.slice(0, 8)}</span>
           </div>
         </div>
       </div>
 
       {/* Tab bar */}
-      <div className="border-b border-ink-800 bg-ink-950">
-        <div className="max-w-7xl mx-auto px-6 flex">
-          {TABS.map(({ id, label, icon: Icon }) => (
+      <div className="border-b border-ink-800 bg-ink-950 overflow-x-auto">
+        <div className="max-w-7xl mx-auto px-2 sm:px-6 flex min-w-max sm:min-w-0">
+          {TABS.map(({ id, label, shortLabel, icon: Icon }) => (
             <button
               key={id}
               onClick={() => setActiveTab(id)}
               className={cn(
-                "flex items-center gap-2 px-5 py-4 text-sm font-medium transition-all border-b-2 -mb-px",
+                "flex items-center gap-1.5 sm:gap-2 px-3 sm:px-5 py-3 sm:py-4 text-xs sm:text-sm font-medium transition-all border-b-2 -mb-px whitespace-nowrap",
                 activeTab === id
                   ? "border-amber-500 text-amber-400"
                   : "border-transparent text-ink-500 hover:text-ink-300 hover:border-ink-700"
               )}
             >
-              <Icon className="w-4 h-4" />{label}
+              <Icon className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+              <span className="sm:hidden">{shortLabel}</span>
+              <span className="hidden sm:inline">{label}</span>
             </button>
           ))}
         </div>
       </div>
 
       {/* Content */}
-      <main className="flex-1 px-6 py-8">
+      <main className="flex-1 px-3 sm:px-6 py-5 sm:py-8">
         <div className="max-w-7xl mx-auto">
           {activeTab === "summary" && <ExecutiveSummary result={result} />}
           {activeTab === "semantic" && <SemanticChanges result={result} />}
           {activeTab === "sections" && <SectionAnalysisTab result={result} />}
           {activeTab === "diff" && <DiffViewer result={result} />}
           
-          {/* RAG context banner — always visible at the bottom */}
+          {/* RAG context banner */}
           <RagContextPanel ragContext={result.rag_context} />
         </div>
       </main>
 
-      {/* Floating chat — always accessible regardless of active tab */}
+      {/* Floating chat */}
       <ComparisonChat
         comparisonId={result.comparison_id}
         doc1Name={result.doc1_name}

@@ -20,19 +20,22 @@ function highlight(text: string, type: "old" | "new") {
 function DiffChunkRow({ chunk }: { chunk: DiffChunk }) {
   return (
     <div className="border-b border-ink-800 last:border-0">
-      <div className="px-4 py-2 flex items-center gap-2 bg-ink-900/50 border-b border-ink-800">
+      <div className="px-3 sm:px-4 py-2 flex items-center gap-2 bg-ink-900/50 border-b border-ink-800">
         <ChangeBadge type={chunk.type} size="sm" />
         {chunk.section && (
-          <span className="text-xs text-ink-600">§ {chunk.section}</span>
+          <span className="text-xs text-ink-600 truncate">§ {chunk.section}</span>
         )}
       </div>
-      <div className="grid grid-cols-2 divide-x divide-ink-800">
-        <div className="p-4 text-xs font-mono leading-relaxed text-ink-400 min-h-[2rem]">
+      {/* Stack vertically on mobile, side by side on sm+ */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 sm:divide-x divide-ink-800">
+        <div className="p-3 sm:p-4 text-xs font-mono leading-relaxed text-ink-400 min-h-[2rem] border-b sm:border-b-0 border-ink-800">
+          <p className="text-xs text-ink-600 mb-1 sm:hidden">Before:</p>
           {chunk.old_text
             ? highlight(chunk.old_text, "old")
             : <span className="text-ink-700 italic">—</span>}
         </div>
-        <div className="p-4 text-xs font-mono leading-relaxed text-ink-400 min-h-[2rem]">
+        <div className="p-3 sm:p-4 text-xs font-mono leading-relaxed text-ink-400 min-h-[2rem]">
+          <p className="text-xs text-ink-600 mb-1 sm:hidden">After:</p>
           {chunk.new_text
             ? highlight(chunk.new_text, "new")
             : <span className="text-ink-700 italic">—</span>}
@@ -58,25 +61,29 @@ export default function DiffViewer({ result }: Props) {
   return (
     <div className="space-y-4 tab-content">
       {/* Toolbar */}
-      <div className="flex items-center gap-3 p-4 rounded-xl bg-ink-900 border border-ink-800">
+      <div className="flex items-center gap-3 p-3 sm:p-4 rounded-xl bg-ink-900 border border-ink-800">
         <div className="flex gap-1">
           <button
             onClick={() => setView("diff")}
             className={cn(
-              "flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all",
+              "flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-lg text-xs font-medium transition-all",
               view === "diff" ? "bg-amber-500 text-ink-950" : "bg-ink-800 text-ink-400 hover:bg-ink-700"
             )}
           >
-            <List className="w-3.5 h-3.5" /> Changes Only
+            <List className="w-3.5 h-3.5" />
+            <span className="hidden xs:inline">Changes Only</span>
+            <span className="xs:hidden">Changes</span>
           </button>
           <button
             onClick={() => setView("side")}
             className={cn(
-              "flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all",
+              "flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-lg text-xs font-medium transition-all",
               view === "side" ? "bg-amber-500 text-ink-950" : "bg-ink-800 text-ink-400 hover:bg-ink-700"
             )}
           >
-            <Columns className="w-3.5 h-3.5" /> Side-by-Side
+            <Columns className="w-3.5 h-3.5" />
+            <span className="hidden xs:inline">Side-by-Side</span>
+            <span className="xs:hidden">Side</span>
           </button>
         </div>
         <span className="ml-auto text-xs text-ink-600">
@@ -87,7 +94,7 @@ export default function DiffViewer({ result }: Props) {
       {view === "diff" ? (
         <div className="rounded-2xl border border-ink-800 overflow-hidden">
           {/* Column headers */}
-          <div className="grid grid-cols-2 divide-x divide-ink-800 bg-ink-900 border-b border-ink-800">
+          <div className="hidden sm:grid grid-cols-2 divide-x divide-ink-800 bg-ink-900 border-b border-ink-800">
             <div className="px-4 py-2.5 flex items-center gap-2">
               <span className="w-4 h-4 rounded bg-crimson-500/20 border border-crimson-500/30 text-crimson-400 text-xs flex items-center justify-center font-mono">A</span>
               <span className="text-xs font-medium text-ink-400 truncate">{result.doc1_name}</span>
@@ -96,6 +103,18 @@ export default function DiffViewer({ result }: Props) {
               <span className="w-4 h-4 rounded bg-jade-500/20 border border-jade-500/30 text-jade-400 text-xs flex items-center justify-center font-mono">B</span>
               <span className="text-xs font-medium text-ink-400 truncate">{result.doc2_name}</span>
             </div>
+          </div>
+          {/* Mobile header */}
+          <div className="flex sm:hidden items-center gap-3 px-3 py-2.5 bg-ink-900 border-b border-ink-800">
+            <span className="flex items-center gap-1.5 text-xs text-crimson-400">
+              <span className="w-4 h-4 rounded bg-crimson-500/20 border border-crimson-500/30 flex items-center justify-center font-mono">A</span>
+              Before
+            </span>
+            <span className="text-ink-700">→</span>
+            <span className="flex items-center gap-1.5 text-xs text-jade-400">
+              <span className="w-4 h-4 rounded bg-jade-500/20 border border-jade-500/30 flex items-center justify-center font-mono">B</span>
+              After
+            </span>
           </div>
 
           {pageChunks.length === 0 ? (
@@ -105,9 +124,9 @@ export default function DiffViewer({ result }: Props) {
           )}
         </div>
       ) : (
-        /* Side by side full text */
+        /* Side by side full text — scrollable on mobile */
         <div className="rounded-2xl border border-ink-800 overflow-hidden">
-          <div className="grid grid-cols-2 divide-x divide-ink-800 bg-ink-900 border-b border-ink-800">
+          <div className="hidden sm:grid grid-cols-2 divide-x divide-ink-800 bg-ink-900 border-b border-ink-800">
             <div className="px-4 py-2.5 flex items-center gap-2">
               <span className="w-4 h-4 rounded bg-crimson-500/20 border border-crimson-500/30 text-crimson-400 text-xs flex items-center justify-center font-mono">A</span>
               <span className="text-xs font-medium text-ink-400 truncate">{result.doc1_name}</span>
@@ -117,12 +136,25 @@ export default function DiffViewer({ result }: Props) {
               <span className="text-xs font-medium text-ink-400 truncate">{result.doc2_name}</span>
             </div>
           </div>
-          <div className="grid grid-cols-2 divide-x divide-ink-800">
-            <div className="p-4 text-xs font-mono text-ink-400 leading-relaxed whitespace-pre-wrap max-h-[60vh] overflow-y-auto">
-              {result.doc1_content}
+          {/* Mobile: stacked panels */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 sm:divide-x divide-ink-800">
+            <div>
+              <div className="flex sm:hidden items-center gap-2 px-3 py-2 bg-ink-900 border-b border-ink-800">
+                <span className="w-4 h-4 rounded bg-crimson-500/20 border border-crimson-500/30 text-crimson-400 text-xs flex items-center justify-center font-mono">A</span>
+                <span className="text-xs text-ink-400 truncate">{result.doc1_name}</span>
+              </div>
+              <div className="p-3 sm:p-4 text-xs font-mono text-ink-400 leading-relaxed whitespace-pre-wrap max-h-[40vh] sm:max-h-[60vh] overflow-y-auto border-b sm:border-b-0 border-ink-800">
+                {result.doc1_content}
+              </div>
             </div>
-            <div className="p-4 text-xs font-mono text-ink-400 leading-relaxed whitespace-pre-wrap max-h-[60vh] overflow-y-auto">
-              {result.doc2_content}
+            <div>
+              <div className="flex sm:hidden items-center gap-2 px-3 py-2 bg-ink-900 border-b border-ink-800">
+                <span className="w-4 h-4 rounded bg-jade-500/20 border border-jade-500/30 text-jade-400 text-xs flex items-center justify-center font-mono">B</span>
+                <span className="text-xs text-ink-400 truncate">{result.doc2_name}</span>
+              </div>
+              <div className="p-3 sm:p-4 text-xs font-mono text-ink-400 leading-relaxed whitespace-pre-wrap max-h-[40vh] sm:max-h-[60vh] overflow-y-auto">
+                {result.doc2_content}
+              </div>
             </div>
           </div>
         </div>
@@ -134,7 +166,7 @@ export default function DiffViewer({ result }: Props) {
           <button
             onClick={() => setPage((p) => Math.max(0, p - 1))}
             disabled={page === 0}
-            className="px-4 py-2 rounded-lg text-sm bg-ink-800 text-ink-300 hover:bg-ink-700 disabled:opacity-30 disabled:cursor-not-allowed"
+            className="px-3 sm:px-4 py-2 rounded-lg text-sm bg-ink-800 text-ink-300 hover:bg-ink-700 disabled:opacity-30 disabled:cursor-not-allowed"
           >
             Previous
           </button>
@@ -144,7 +176,7 @@ export default function DiffViewer({ result }: Props) {
           <button
             onClick={() => setPage((p) => Math.min(totalPages - 1, p + 1))}
             disabled={page >= totalPages - 1}
-            className="px-4 py-2 rounded-lg text-sm bg-ink-800 text-ink-300 hover:bg-ink-700 disabled:opacity-30 disabled:cursor-not-allowed"
+            className="px-3 sm:px-4 py-2 rounded-lg text-sm bg-ink-800 text-ink-300 hover:bg-ink-700 disabled:opacity-30 disabled:cursor-not-allowed"
           >
             Next
           </button>

@@ -49,7 +49,7 @@ export default function AnalyzingOverlay({ doc1, doc2 }: Props) {
           </div>
         </div>
 
-        <h2 className="font-serif text-3xl font-bold text-center text-ink-50 mb-2">
+        <h2 className="font-serif text-2xl sm:text-3xl font-bold text-center text-ink-50 mb-2">
           Analyzing Documents
         </h2>
         <p className="text-ink-500 text-center text-sm mb-10">

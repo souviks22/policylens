@@ -102,7 +102,7 @@ export default function AnnotationsPanel({
   return (
     <div className={cn(
       "flex flex-col bg-ink-950 border border-ink-800 rounded-xl overflow-hidden",
-      floating ? "w-80 shadow-2xl shadow-ink-950/80" : "w-full"
+      floating ? "w-[90vw] sm:w-80 shadow-2xl shadow-ink-950/80" : "w-full"
     )}>
       {/* Header */}
       <div className="flex items-center gap-2 px-4 py-3 border-b border-ink-800 bg-ink-900">
@@ -139,7 +139,7 @@ export default function AnnotationsPanel({
                   <span className="text-xs text-ink-700">{timeAgo(ann.created_at)}</span>
                 </div>
                 <p className="text-xs text-ink-400 leading-relaxed">{ann.text}</p>
-                <div className="flex gap-3 mt-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                <div className="flex gap-3 mt-2 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity">
                   <button
                     onClick={() => handleResolve(ann.id)}
                     className="flex items-center gap-1 text-xs text-jade-500 hover:text-jade-400 transition-colors"

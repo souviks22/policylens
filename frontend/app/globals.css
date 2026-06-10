@@ -93,3 +93,30 @@ del {
   from { opacity: 0; transform: translateY(8px); }
   to { opacity: 1; transform: translateY(0); }
 }
+
+/* Mobile touch improvements */
+@media (max-width: 640px) {
+  /* Increase tap targets */
+  button, a {
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  /* Better scrolling on mobile */
+  .overflow-x-auto {
+    -webkit-overflow-scrolling: touch;
+  }
+
+  /* Prevent text from being too tiny */
+  input, textarea, select {
+    font-size: 16px; /* prevents iOS auto-zoom */
+  }
+}
+
+/* Safe area insets for notched phones */
+@supports (padding-bottom: env(safe-area-inset-bottom)) {
+  .fixed.bottom-0,
+  .fixed.bottom-4,
+  .fixed.bottom-6 {
+    padding-bottom: max(1rem, env(safe-area-inset-bottom));
+  }
+}

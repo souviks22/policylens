@@ -38,9 +38,9 @@ function ChangeCard({
       {/* ── Collapsed row ───────────────────────────────────────────────── */}
       <button
         onClick={() => setExpanded(!expanded)}
-        className="w-full text-left p-5"
+        className="w-full text-left p-4 sm:p-5"
       >
-        <div className="flex items-start gap-3">
+        <div className="flex flex-col sm:flex-row items-start gap-3">
           <div className="flex-shrink-0 mt-0.5">
             <ChangeBadge type={change.change_type} size="sm" />
           </div>
@@ -70,11 +70,11 @@ function ChangeCard({
 
       {/* ── Expanded content ─────────────────────────────────────────────── */}
       {expanded && (
-        <div className="px-5 pb-5 space-y-4 border-t border-ink-800 pt-4 tab-content">
+        <div className="px-3 sm:px-5 pb-4 sm:pb-5 space-y-3 sm:space-y-4 border-t border-ink-800 pt-3 sm:pt-4 tab-content">
 
           {/* Before / After */}
           {(change.old_content || change.new_content) && (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 gap-3">
               {change.old_content && (
                 <div className="p-3 rounded-xl bg-crimson-950/40 border border-crimson-800/40">
                   <p className="text-xs font-semibold text-crimson-400 mb-2 uppercase tracking-wider">Before</p>
@@ -206,8 +206,8 @@ export default function SemanticChanges({ result }: Props) {
     <div className="space-y-4 tab-content">
 
       {/* Filter toolbar */}
-      <div className="flex flex-wrap items-center gap-2 p-4 rounded-xl bg-ink-900 border border-ink-800">
-        <div className="flex flex-wrap gap-1.5">
+      <div className="flex flex-col sm:flex-row sm:flex-wrap items-start sm:items-center gap-2 p-3 sm:p-4 rounded-xl bg-ink-900 border border-ink-800">
+        <div className="flex flex-wrap gap-1">
           {(["all","addition","deletion","modification","regulatory_update"] as TypeFilter[]).map(f => (
             <button
               key={f}
@@ -226,7 +226,7 @@ export default function SemanticChanges({ result }: Props) {
 
         <div className="w-px bg-ink-700 mx-1 self-stretch" />
 
-        <div className="flex flex-wrap gap-1.5">
+        <div className="flex flex-wrap gap-1">
           {(["all","high","medium","low"] as ImpactFilter[]).map(f => (
             <button
               key={f}

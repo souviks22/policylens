@@ -6,6 +6,14 @@ module.exports = {
     "./lib/**/*.{js,ts,jsx,tsx,mdx}",
   ],
   theme: {
+    screens: {
+      xs: "480px",
+      sm: "640px",
+      md: "768px",
+      lg: "1024px",
+      xl: "1280px",
+      "2xl": "1536px",
+    },
     extend: {
       colors: {
         ink: {
@@ -44,6 +52,7 @@ module.exports = {
           700: "#be123c",
           800: "#9f1239",
           900: "#881337",
+          950: "#4c0519",
         },
         jade: {
           50: "#f0fdf4",
@@ -56,6 +65,7 @@ module.exports = {
           700: "#15803d",
           800: "#166534",
           900: "#14532d",
+          950: "#052e16",
         },
         sapphire: {
           50: "#eff6ff",

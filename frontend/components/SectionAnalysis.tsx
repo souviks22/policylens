@@ -88,7 +88,7 @@ function MatchRow({ match }: { match: SectionMatch }) {
           </span>
 
           {/* Section names */}
-          <div className="flex-1 min-w-0 grid grid-cols-2 gap-3">
+          <div className="flex-1 min-w-0 grid grid-cols-1 sm:grid-cols-2 gap-1 sm:gap-3">
             <span className="text-xs text-ink-400 truncate">
               {match.doc1_section ?? <span className="text-ink-700 italic">—</span>}
             </span>
@@ -98,7 +98,7 @@ function MatchRow({ match }: { match: SectionMatch }) {
           </div>
 
           {/* Similarity bar */}
-          <div className="w-32 flex-shrink-0">
+          <div className="hidden sm:block w-32 flex-shrink-0">
             {showScore && <ScoreBar score={match.similarity_score} />}
           </div>
 
@@ -111,7 +111,7 @@ function MatchRow({ match }: { match: SectionMatch }) {
 
       {/* Expanded content */}
       {open && (
-        <div className="px-4 pb-4 pt-3 border-t border-ink-800 grid grid-cols-1 md:grid-cols-2 gap-3 tab-content">
+        <div className="px-3 sm:px-4 pb-3 sm:pb-4 pt-3 border-t border-ink-800 grid grid-cols-1 gap-3 tab-content">
           <div>
             <p className="text-xs font-semibold text-crimson-400 mb-2 uppercase tracking-wider">
               Document A — {match.doc1_section ?? "Not present"}
@@ -283,7 +283,7 @@ export default function SectionAnalysis({ result }: Props) {
 
       {/* ── Heatmap view ───────────────────────────────────────────────────── */}
       {view === "heatmap" && (
-        <div className="p-5 rounded-2xl bg-ink-900 border border-ink-800">
+        <div className="p-3 sm:p-5 rounded-2xl bg-ink-900 border border-ink-800 overflow-x-auto">
           <div className="flex items-start justify-between gap-4 mb-4">
             <div>
               <p className="text-sm font-semibold text-ink-200">Section Cosine Similarity Matrix</p>

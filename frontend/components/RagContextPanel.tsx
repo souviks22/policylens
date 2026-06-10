@@ -72,7 +72,7 @@ export default function RagContextPanel({ ragContext }: Props) {
 
       {/* Expanded source list */}
       {expanded && (
-        <div className="border-t border-ink-800 px-4 py-3 space-y-2">
+        <div className="border-t border-ink-800 px-3 sm:px-4 py-3 space-y-2">
           <p className="text-xs text-ink-500 mb-3">
             The following regulatory context contributed to the compliance analysis:
           </p>

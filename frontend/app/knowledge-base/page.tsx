@@ -25,21 +25,21 @@ export default function KnowledgeBasePage() {
   const [loading, setLoading]       = useState(true);
   const [error, setError]           = useState<string | null>(null);
 
-  // Upload state
   const [uploadScope, setUploadScope]           = useState<"global" | "personal">("global");
   const [uploadDescription, setUploadDescription] = useState("");
   const [uploading, setUploading]               = useState(false);
   const [uploadProgress, setUploadProgress]     = useState(0);
   const [uploadSuccess, setUploadSuccess]       = useState<string | null>(null);
 
-  // Search state
   const [searchQuery, setSearchQuery]   = useState("");
   const [searchResults, setSearchResults] = useState<KbSearchResult[]>([]);
   const [searching, setSearching]       = useState(false);
   const searchTimer = useRef<NodeJS.Timeout | null>(null);
 
-  // Delete state
   const [deletingId, setDeletingId] = useState<string | null>(null);
+
+  // Mobile: toggle upload panel
+  const [showUploadPanel, setShowUploadPanel] = useState(false);
 
   const loadData = useCallback(async () => {
     setLoading(true);
@@ -64,7 +64,6 @@ export default function KnowledgeBasePage() {
     activeTab === "global" ? d.scope === "global" : d.scope === "personal"
   );
 
-  // ── Dropzone ──────────────────────────────────────────────────────────────────
   const onDrop = useCallback(async (files: File[]) => {
     const file = files[0];
     if (!file) return;
@@ -96,7 +95,6 @@ export default function KnowledgeBasePage() {
     disabled: uploading,
   });
 
-  // ── Delete ────────────────────────────────────────────────────────────────────
   const handleDelete = async (docId: string) => {
     setDeletingId(docId);
     try {
@@ -109,7 +107,6 @@ export default function KnowledgeBasePage() {
     }
   };
 
-  // ── Search with debounce ──────────────────────────────────────────────────────
   useEffect(() => {
     if (searchTimer.current) clearTimeout(searchTimer.current);
     if (!searchQuery.trim() || searchQuery.length < 3) {
@@ -139,40 +136,50 @@ export default function KnowledgeBasePage() {
 
   return (
     <div className="grain min-h-screen flex flex-col">
-      {/* ── Header ─────────────────────────────────────────────────────────── */}
-      <header className="border-b border-ink-800 px-8 py-5 flex items-center gap-4">
+      {/* Header */}
+      <header className="border-b border-ink-800 px-4 sm:px-8 py-4 sm:py-5 flex items-center gap-2 sm:gap-4">
         <Link href="/" className="flex items-center gap-2.5">
           <div className="w-8 h-8 rounded-lg bg-amber-500 flex items-center justify-center">
             <GitCompare className="w-4 h-4 text-ink-950" />
           </div>
-          <span className="font-serif text-xl font-semibold text-ink-100">PolicyLens</span>
+          <span className="font-serif text-lg sm:text-xl font-semibold text-ink-100 hidden sm:inline">PolicyLens</span>
         </Link>
 
         <ChevronRight className="w-4 h-4 text-ink-600" />
         <div className="flex items-center gap-1.5 text-sm text-ink-300">
           <Database className="w-4 h-4 text-amber-500" />
-          Knowledge Base
+          <span className="hidden xs:inline">Knowledge Base</span>
+          <span className="xs:hidden">KB</span>
         </div>
 
-        <div className="ml-auto flex items-center gap-3">
+        <div className="ml-auto flex items-center gap-1 sm:gap-3">
+          {/* Mobile upload toggle */}
+          <button
+            onClick={() => setShowUploadPanel(!showUploadPanel)}
+            className="flex lg:hidden items-center gap-1.5 px-2 py-1.5 rounded-lg text-xs text-ink-400 hover:text-ink-200 hover:bg-ink-800 transition-all"
+          >
+            <Upload className="w-3.5 h-3.5" />
+          </button>
+
           <Link
             href="/history"
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs text-ink-400 hover:text-ink-200 hover:bg-ink-800 transition-all"
+            className="flex items-center gap-1.5 px-2 sm:px-3 py-1.5 rounded-lg text-xs text-ink-400 hover:text-ink-200 hover:bg-ink-800 transition-all"
           >
-            <History className="w-3.5 h-3.5" /> History
+            <History className="w-3.5 h-3.5" />
+            <span className="hidden sm:inline">History</span>
           </Link>
 
           {user && (
-            <div className="flex items-center gap-2 pl-3 border-l border-ink-800">
-              <div className="flex items-center gap-1.5 text-xs text-ink-500">
+            <div className="flex items-center gap-2 pl-2 sm:pl-3 border-l border-ink-800">
+              <div className="hidden sm:flex items-center gap-1.5 text-xs text-ink-500">
                 <div className="w-6 h-6 rounded-full bg-amber-500/20 border border-amber-500/30 flex items-center justify-center">
                   <User className="w-3 h-3 text-amber-400" />
                 </div>
-                <span className="text-ink-400">{user.full_name || user.username}</span>
+                <span className="text-ink-400 max-w-[100px] truncate">{user.full_name || user.username}</span>
               </div>
               <button
                 onClick={logout}
-                className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs text-ink-600 hover:text-crimson-400 hover:bg-ink-800 transition-all"
+                className="flex items-center gap-1 px-2 sm:px-2.5 py-1.5 rounded-lg text-xs text-ink-600 hover:text-crimson-400 hover:bg-ink-800 transition-all"
               >
                 <LogOut className="w-3.5 h-3.5" />
               </button>
@@ -181,11 +188,11 @@ export default function KnowledgeBasePage() {
         </div>
       </header>
 
-      <main className="flex-1 max-w-6xl mx-auto w-full px-6 py-8">
-        {/* ── Hero ───────────────────────────────────────────────────────── */}
-        <div className="mb-8">
-          <h1 className="font-serif text-3xl font-bold text-ink-50 mb-2 flex items-center gap-3">
-            <Sparkles className="w-7 h-7 text-amber-400" />
+      <main className="flex-1 max-w-6xl mx-auto w-full px-4 sm:px-6 py-6 sm:py-8">
+        {/* Hero */}
+        <div className="mb-6 sm:mb-8">
+          <h1 className="font-serif text-2xl sm:text-3xl font-bold text-ink-50 mb-2 flex items-center gap-3">
+            <Sparkles className="w-6 h-6 sm:w-7 sm:h-7 text-amber-400" />
             RAG Knowledge Base
           </h1>
           <p className="text-ink-400 text-sm leading-relaxed max-w-2xl">
@@ -195,9 +202,9 @@ export default function KnowledgeBasePage() {
           </p>
         </div>
 
-        {/* ── Stats bar ─────────────────────────────────────────────────── */}
+        {/* Stats bar */}
         {stats && (
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-8">
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4 mb-6 sm:mb-8">
             <StatCard
               icon={<Globe className="w-4 h-4 text-amber-400" />}
               label="Global KB docs"
@@ -221,14 +228,22 @@ export default function KnowledgeBasePage() {
           </div>
         )}
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          {/* ── Left: Upload + Search ──────────────────────────────────── */}
-          <div className="lg:col-span-1 space-y-6">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 sm:gap-8">
+          {/* Left: Upload + Search — hidden on mobile unless toggled */}
+          <div className={`lg:col-span-1 space-y-5 sm:space-y-6 ${showUploadPanel ? "block" : "hidden lg:block"}`}>
             {/* Upload panel */}
-            <div className="rounded-2xl bg-ink-900 border border-ink-700 p-6">
-              <h2 className="font-semibold text-ink-200 mb-4 flex items-center gap-2">
-                <Upload className="w-4 h-4 text-amber-400" /> Add Document
-              </h2>
+            <div className="rounded-2xl bg-ink-900 border border-ink-700 p-4 sm:p-6">
+              <div className="flex items-center justify-between mb-4">
+                <h2 className="font-semibold text-ink-200 flex items-center gap-2">
+                  <Upload className="w-4 h-4 text-amber-400" /> Add Document
+                </h2>
+                <button
+                  onClick={() => setShowUploadPanel(false)}
+                  className="lg:hidden p-1 rounded text-ink-600 hover:text-ink-400"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
 
               {/* Scope selector */}
               <div className="flex gap-2 mb-4">
@@ -252,7 +267,6 @@ export default function KnowledgeBasePage() {
                 ))}
               </div>
 
-              {/* Description */}
               <input
                 type="text"
                 placeholder="Optional description…"
@@ -261,10 +275,9 @@ export default function KnowledgeBasePage() {
                 className="w-full mb-3 px-3 py-2 rounded-lg bg-ink-800 border border-ink-700 text-ink-200 text-sm placeholder:text-ink-600 focus:outline-none focus:border-amber-500/50"
               />
 
-              {/* Drop zone */}
               <div
                 {...getRootProps()}
-                className={`rounded-xl border-2 border-dashed p-6 text-center cursor-pointer transition-all ${
+                className={`rounded-xl border-2 border-dashed p-5 sm:p-6 text-center cursor-pointer transition-all ${
                   isDragActive
                     ? "border-amber-400 bg-amber-500/5"
                     : uploading
@@ -303,8 +316,8 @@ export default function KnowledgeBasePage() {
               )}
             </div>
 
-            {/* Search / preview panel */}
-            <div className="rounded-2xl bg-ink-900 border border-ink-700 p-6">
+            {/* Search panel */}
+            <div className="rounded-2xl bg-ink-900 border border-ink-700 p-4 sm:p-6">
               <h2 className="font-semibold text-ink-200 mb-4 flex items-center gap-2">
                 <Search className="w-4 h-4 text-amber-400" /> Preview Retrieval
               </h2>
@@ -357,7 +370,7 @@ export default function KnowledgeBasePage() {
             </div>
           </div>
 
-          {/* ── Right: Document list ──────────────────────────────────────── */}
+          {/* Right: Document list */}
           <div className="lg:col-span-2">
             {/* Error */}
             {error && (
@@ -368,13 +381,23 @@ export default function KnowledgeBasePage() {
               </div>
             )}
 
+            {/* Mobile: Add Document button when panel hidden */}
+            {!showUploadPanel && (
+              <button
+                onClick={() => setShowUploadPanel(true)}
+                className="lg:hidden w-full mb-4 flex items-center justify-center gap-2 py-2.5 rounded-xl border border-dashed border-ink-700 text-sm text-ink-400 hover:border-amber-500/40 hover:text-ink-200 transition-all"
+              >
+                <Upload className="w-4 h-4" /> Add Document
+              </button>
+            )}
+
             {/* Tabs */}
-            <div className="flex gap-2 mb-6">
+            <div className="flex gap-2 mb-5 sm:mb-6 overflow-x-auto">
               {(["global", "personal"] as const).map((tab) => (
                 <button
                   key={tab}
                   onClick={() => setActiveTab(tab)}
-                  className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all border ${
+                  className={`flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-2 rounded-lg text-xs sm:text-sm font-medium transition-all border whitespace-nowrap ${
                     activeTab === tab
                       ? tab === "global"
                         ? "bg-amber-500/10 border-amber-500/30 text-amber-400"
@@ -386,9 +409,7 @@ export default function KnowledgeBasePage() {
                     ? <><Globe className="w-3.5 h-3.5" /> Global Regulatory KB</>
                     : <><Building2 className="w-3.5 h-3.5" /> My Company KB</>
                   }
-                  <span className={`ml-1 text-xs px-1.5 py-0.5 rounded-full ${
-                    activeTab === tab ? "bg-ink-800" : "bg-ink-800"
-                  } text-ink-500`}>
+                  <span className="ml-1 text-xs px-1.5 py-0.5 rounded-full bg-ink-800 text-ink-500">
                     {documents.filter((d) => d.scope === tab).length}
                   </span>
                 </button>
@@ -396,7 +417,7 @@ export default function KnowledgeBasePage() {
             </div>
 
             {/* Scope description */}
-            <div className={`mb-5 p-4 rounded-xl border text-sm ${
+            <div className={`mb-4 sm:mb-5 p-3 sm:p-4 rounded-xl border text-xs sm:text-sm ${
               activeTab === "global"
                 ? "bg-amber-500/5 border-amber-500/20 text-amber-200/70"
                 : "bg-jade-500/5 border-jade-500/20 text-jade-200/70"
@@ -426,6 +447,7 @@ export default function KnowledgeBasePage() {
                 scope={activeTab}
                 onUploadClick={() => {
                   setUploadScope(activeTab);
+                  setShowUploadPanel(true);
                   window.scrollTo({ top: 0, behavior: "smooth" });
                 }}
               />
@@ -448,16 +470,16 @@ export default function KnowledgeBasePage() {
   );
 }
 
-// ── Sub-components ─────────────────────────────────────────────────────────────
+// Sub-components
 
 function StatCard({ icon, label, value }: { icon: React.ReactNode; label: string; value: number }) {
   return (
-    <div className="rounded-xl bg-ink-900 border border-ink-700 px-4 py-3">
+    <div className="rounded-xl bg-ink-900 border border-ink-700 px-3 sm:px-4 py-3">
       <div className="flex items-center gap-2 mb-1">
         {icon}
-        <span className="text-xs text-ink-500">{label}</span>
+        <span className="text-xs text-ink-500 truncate">{label}</span>
       </div>
-      <p className="text-2xl font-bold text-ink-100">{value.toLocaleString()}</p>
+      <p className="text-xl sm:text-2xl font-bold text-ink-100">{value.toLocaleString()}</p>
     </div>
   );
 }
@@ -469,7 +491,7 @@ function DocumentRow({
 
   return (
     <div className="rounded-xl bg-ink-900 border border-ink-700 hover:border-ink-600 transition-all">
-      <div className="flex items-center gap-4 px-4 py-3">
+      <div className="flex items-center gap-3 sm:gap-4 px-3 sm:px-4 py-3">
         <div className={`w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 ${
           doc.scope === "global" ? "bg-amber-500/10" : "bg-jade-500/10"
         }`}>
@@ -478,9 +500,9 @@ function DocumentRow({
 
         <div className="flex-1 min-w-0">
           <p className="text-sm font-medium text-ink-200 truncate">{doc.filename}</p>
-          <p className="text-xs text-ink-500">
-            {doc.chunk_count} chunks · {Math.round(doc.char_count / 1000)}k chars ·
-            Added by <span className="text-ink-400">{doc.uploaded_by}</span> ·{" "}
+          <p className="text-xs text-ink-500 truncate">
+            {doc.chunk_count} chunks · {Math.round(doc.char_count / 1000)}k chars ·{" "}
+            <span className="hidden sm:inline">Added by <span className="text-ink-400">{doc.uploaded_by}</span> · </span>
             {new Date(doc.created_at).toLocaleDateString()}
           </p>
           {doc.description && (
@@ -488,7 +510,7 @@ function DocumentRow({
           )}
         </div>
 
-        <div className="flex items-center gap-2 flex-shrink-0">
+        <div className="flex items-center gap-1 sm:gap-2 flex-shrink-0">
           <button
             onClick={() => setExpanded((v) => !v)}
             className="p-1.5 rounded-lg text-ink-500 hover:text-ink-300 hover:bg-ink-800 transition-all"
@@ -511,7 +533,7 @@ function DocumentRow({
       </div>
 
       {expanded && (
-        <div className="px-4 pb-3 border-t border-ink-800">
+        <div className="px-3 sm:px-4 pb-3 border-t border-ink-800">
           <div className="pt-3 grid grid-cols-2 gap-2 text-xs">
             <div>
               <p className="text-ink-600 mb-0.5">Document ID</p>
@@ -530,19 +552,19 @@ function DocumentRow({
 
 function EmptyState({ scope, onUploadClick }: { scope: Tab; onUploadClick: () => void }) {
   return (
-    <div className="flex flex-col items-center justify-center py-16 text-center">
-      <div className={`w-14 h-14 rounded-2xl flex items-center justify-center mb-4 ${
+    <div className="flex flex-col items-center justify-center py-12 sm:py-16 text-center">
+      <div className={`w-12 h-12 sm:w-14 sm:h-14 rounded-2xl flex items-center justify-center mb-4 ${
         scope === "global" ? "bg-amber-500/10" : "bg-jade-500/10"
       }`}>
         {scope === "global"
-          ? <Globe className="w-7 h-7 text-amber-500/60" />
-          : <Building2 className="w-7 h-7 text-jade-500/60" />
+          ? <Globe className="w-6 h-6 sm:w-7 sm:h-7 text-amber-500/60" />
+          : <Building2 className="w-6 h-6 sm:w-7 sm:h-7 text-jade-500/60" />
         }
       </div>
       <p className="text-ink-300 font-medium mb-1">
         {scope === "global" ? "No regulatory documents yet" : "No company documents yet"}
       </p>
-      <p className="text-ink-600 text-sm mb-5 max-w-xs">
+      <p className="text-ink-600 text-sm mb-5 max-w-xs px-4">
         {scope === "global"
           ? "Add GDPR, HIPAA, SOX, ISO 27001 or other standards to ground every analysis."
           : "Upload internal policies to give the AI company-specific compliance context."

@@ -75,13 +75,13 @@ export default function HistoryPage() {
   return (
     <div className="grain min-h-screen flex flex-col">
 
-      {/* ── Header ─────────────────────────────────────────────────────── */}
-      <header className="border-b border-ink-800 px-8 py-5 flex items-center gap-3">
+      {/* Header */}
+      <header className="border-b border-ink-800 px-4 sm:px-8 py-4 sm:py-5 flex items-center gap-2 sm:gap-3">
         <Link href="/" className="flex items-center gap-2.5">
           <div className="w-8 h-8 rounded-lg bg-amber-500 flex items-center justify-center">
             <GitCompare className="w-4 h-4 text-ink-950" />
           </div>
-          <span className="font-serif text-xl font-semibold text-ink-100">PolicyLens</span>
+          <span className="font-serif text-lg sm:text-xl font-semibold text-ink-100 hidden sm:inline">PolicyLens</span>
         </Link>
 
         <ChevronRight className="w-4 h-4 text-ink-600" />
@@ -90,27 +90,29 @@ export default function HistoryPage() {
           <span>History</span>
         </div>
 
-        <div className="ml-auto flex items-center gap-3">
+        <div className="ml-auto flex items-center gap-1 sm:gap-3">
           <Link
             href="/knowledge-base"
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs text-ink-400 hover:text-ink-200 hover:bg-ink-800 transition-all"
+            className="flex items-center gap-1.5 px-2 sm:px-3 py-1.5 rounded-lg text-xs text-ink-400 hover:text-ink-200 hover:bg-ink-800 transition-all"
           >
-            <Database className="w-3.5 h-3.5" /> Knowledge Base
+            <Database className="w-3.5 h-3.5" />
+            <span className="hidden sm:inline">Knowledge Base</span>
           </Link>
           <Link
             href="/"
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs text-ink-400 hover:text-ink-200 hover:bg-ink-800 transition-all"
+            className="flex items-center gap-1.5 px-2 sm:px-3 py-1.5 rounded-lg text-xs text-ink-400 hover:text-ink-200 hover:bg-ink-800 transition-all"
           >
-            <ArrowLeft className="w-3.5 h-3.5" /> New Comparison
+            <ArrowLeft className="w-3.5 h-3.5" />
+            <span className="hidden sm:inline">New Comparison</span>
           </Link>
 
           {user && (
-            <div className="flex items-center gap-2 pl-3 border-l border-ink-800">
-              <div className="flex items-center gap-1.5 text-xs text-ink-500">
+            <div className="flex items-center gap-2 pl-2 sm:pl-3 border-l border-ink-800">
+              <div className="hidden sm:flex items-center gap-1.5 text-xs text-ink-500">
                 <div className="w-6 h-6 rounded-full bg-amber-500/20 border border-amber-500/30 flex items-center justify-center">
                   <User className="w-3 h-3 text-amber-400" />
                 </div>
-                <span className="text-ink-400">{user.full_name || user.username}</span>
+                <span className="text-ink-400 max-w-[100px] truncate">{user.full_name || user.username}</span>
               </div>
               <button
                 onClick={logout}
@@ -124,10 +126,10 @@ export default function HistoryPage() {
         </div>
       </header>
 
-      {/* ── Main ───────────────────────────────────────────────────────── */}
-      <main className="flex-1 max-w-5xl mx-auto w-full px-6 py-10">
-        <div className="mb-8">
-          <h1 className="font-serif text-3xl font-bold text-ink-50 mb-2">Your Comparisons</h1>
+      {/* Main */}
+      <main className="flex-1 max-w-5xl mx-auto w-full px-4 sm:px-6 py-6 sm:py-10">
+        <div className="mb-6 sm:mb-8">
+          <h1 className="font-serif text-2xl sm:text-3xl font-bold text-ink-50 mb-2">Your Comparisons</h1>
           <p className="text-ink-500 text-sm">
             All comparisons run under <span className="text-ink-300 font-medium">{user?.username}</span> are saved here.
           </p>
@@ -160,22 +162,33 @@ export default function HistoryPage() {
             {items.map((item) => (
               <div
                 key={item.id}
-                className="p-5 rounded-2xl bg-ink-900 border border-ink-800 hover:border-ink-700 transition-all"
+                className="p-4 sm:p-5 rounded-2xl bg-ink-900 border border-ink-800 hover:border-ink-700 transition-all"
               >
-                <div className="flex items-start gap-4 flex-wrap">
+                <div className="flex items-start gap-3 sm:gap-4 flex-wrap">
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 mb-1 flex-wrap">
-                      <span className="text-sm font-medium text-ink-100 truncate max-w-[200px]">
+                      <span className="text-sm font-medium text-ink-100 truncate max-w-[140px] sm:max-w-[200px]">
                         {item.doc1_name}
                       </span>
                       <GitCompare className="w-3.5 h-3.5 text-ink-600 flex-shrink-0" />
-                      <span className="text-sm font-medium text-ink-100 truncate max-w-[200px]">
+                      <span className="text-sm font-medium text-ink-100 truncate max-w-[140px] sm:max-w-[200px]">
                         {item.doc2_name}
                       </span>
                     </div>
                     <p className="text-xs text-ink-600">{timeStr(item.created_at)}</p>
+
+                    {/* Mobile stats */}
+                    <div className="flex sm:hidden items-center gap-3 mt-2 text-xs">
+                      <span className="text-ink-300 font-mono font-bold">{item.total_changes}</span>
+                      <span className="text-ink-600">changes</span>
+                      <span className="text-jade-400 font-mono font-bold">{item.additions}</span>
+                      <span className="text-ink-600">added</span>
+                      <span className="text-crimson-400 font-mono font-bold">{item.deletions}</span>
+                      <span className="text-ink-600">deleted</span>
+                    </div>
                   </div>
 
+                  {/* Desktop stats */}
                   <div className="hidden sm:flex items-center gap-4 text-xs">
                     {[
                       { v: item.total_changes, l: "changes",  c: "text-ink-300" },
@@ -190,33 +203,35 @@ export default function HistoryPage() {
                     ))}
                   </div>
 
-                  <span className={cn(
-                    "px-2.5 py-1 rounded-full border text-xs font-medium flex-shrink-0",
-                    impactColors[item.overall_impact] ?? impactColors.none
-                  )}>
-                    {item.overall_impact.charAt(0).toUpperCase() + item.overall_impact.slice(1)} Impact
-                  </span>
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <span className={cn(
+                      "px-2.5 py-1 rounded-full border text-xs font-medium flex-shrink-0",
+                      impactColors[item.overall_impact] ?? impactColors.none
+                    )}>
+                      {item.overall_impact.charAt(0).toUpperCase() + item.overall_impact.slice(1)} Impact
+                    </span>
 
-                  <div className="flex items-center gap-2 flex-shrink-0">
-                    <button
-                      onClick={() => handleOpen(item.id)}
-                      disabled={!!loadingId}
-                      className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs bg-ink-800 text-ink-300 hover:bg-ink-700 disabled:opacity-50 transition-all"
-                    >
-                      {loadingId === item.id
-                        ? <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                        : <ExternalLink className="w-3.5 h-3.5" />}
-                      Open
-                    </button>
-                    <button
-                      onClick={() => handleDelete(item.id)}
-                      disabled={deleting === item.id}
-                      className="p-1.5 rounded-lg text-ink-600 hover:text-crimson-400 hover:bg-crimson-950/40 transition-all"
-                    >
-                      {deleting === item.id
-                        ? <Loader2 className="w-4 h-4 animate-spin" />
-                        : <Trash2 className="w-4 h-4" />}
-                    </button>
+                    <div className="flex items-center gap-2 flex-shrink-0">
+                      <button
+                        onClick={() => handleOpen(item.id)}
+                        disabled={!!loadingId}
+                        className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs bg-ink-800 text-ink-300 hover:bg-ink-700 disabled:opacity-50 transition-all"
+                      >
+                        {loadingId === item.id
+                          ? <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                          : <ExternalLink className="w-3.5 h-3.5" />}
+                        Open
+                      </button>
+                      <button
+                        onClick={() => handleDelete(item.id)}
+                        disabled={deleting === item.id}
+                        className="p-1.5 rounded-lg text-ink-600 hover:text-crimson-400 hover:bg-crimson-950/40 transition-all"
+                      >
+                        {deleting === item.id
+                          ? <Loader2 className="w-4 h-4 animate-spin" />
+                          : <Trash2 className="w-4 h-4" />}
+                      </button>
+                    </div>
                   </div>
                 </div>
               </div>
