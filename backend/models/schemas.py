@@ -130,6 +130,22 @@ class ComparisonListItem(BaseModel):
         from_attributes = True
 
 
+class RagContextSource(BaseModel):
+    """A single retrieved chunk that was injected into the LLM analysis."""
+    source_doc_id: str
+    source_doc_name: str
+    scope: str           # "global" | "personal"
+    excerpt: str         # first ~300 chars of the chunk
+    relevance_score: float
+
+
+class RagContextSummary(BaseModel):
+    """Summary of the RAG context used during a comparison analysis."""
+    global_chunks_used: int
+    personal_chunks_used: int
+    sources: List[RagContextSource] = Field(default_factory=list)
+
+
 class ComparisonResult(BaseModel):
     comparison_id: str
     doc1_name: str
@@ -145,6 +161,7 @@ class ComparisonResult(BaseModel):
     doc2_sections: List[str]
     section_analysis: Optional[SectionAnalysis] = None
     text_similarity_ratio: float = 0.0
+    rag_context: Optional[RagContextSummary] = None
 
 
 class UploadResponse(BaseModel):
@@ -158,3 +175,41 @@ class UploadResponse(BaseModel):
 class ErrorResponse(BaseModel):
     error: str
     detail: Optional[str] = None
+
+
+class KbScope(str, Enum):
+    GLOBAL = "global"
+    PERSONAL = "personal"
+
+
+class KbUploadResponse(BaseModel):
+    doc_id: str
+    filename: str
+    scope: str
+    chunk_count: int
+    char_count: int
+    status: str = "indexed"
+
+
+class KbDocumentResponse(BaseModel):
+    id: str
+    filename: str
+    description: Optional[str]
+    scope: str
+    uploaded_by: str          # username of uploader
+    chunk_count: int
+    char_count: int
+    created_at: datetime
+
+    class Config:
+        from_attributes = True
+
+
+class KbSearchResult(BaseModel):
+    """A single search hit when previewing RAG retrieval."""
+    doc_id: str
+    source_doc_name: str
+    scope: str
+    chunk_index: int
+    excerpt: str
+    score: float

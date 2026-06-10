@@ -6,6 +6,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from models.schemas import (
     ComparisonResult, DocumentStats, SectionAnalysis,
     SectionMatch, ComparisonListItem,
+    RagContextSummary, RagContextSource,
 )
 from services.text_diff import TextDiffService
 from services.semantic_analyzer import SemanticAnalyzer
@@ -32,6 +33,39 @@ class CompareRequest(BaseModel):
     doc2_id: str
 
 
+def _build_rag_query(doc1: dict, doc2: dict) -> str:
+    """
+    Construct a concise query string that captures the subject matter of both
+    documents so the RAG retrieval is topically relevant.
+    """
+    # Use first ~600 chars of each doc as a signal
+    snippet1 = doc1["text"][:600].replace("\n", " ").strip()
+    snippet2 = doc2["text"][:600].replace("\n", " ").strip()
+    filenames = f"{doc1['filename']} vs {doc2['filename']}"
+    return f"Regulatory compliance context for: {filenames}\n\n{snippet1}\n\n{snippet2}"
+
+
+def _build_rag_context_summary(hits: list) -> RagContextSummary:
+    """Convert raw RAG hits into a RagContextSummary for the API response."""
+    global_count   = sum(1 for h in hits if h["scope"] == "global")
+    personal_count = sum(1 for h in hits if h["scope"] == "personal")
+    sources = [
+        RagContextSource(
+            source_doc_id=h["source_doc_id"],
+            source_doc_name=h["source_doc_name"],
+            scope=h["scope"],
+            excerpt=h["text"][:300] + ("…" if len(h["text"]) > 300 else ""),
+            relevance_score=h["score"],
+        )
+        for h in hits
+    ]
+    return RagContextSummary(
+        global_chunks_used=global_count,
+        personal_chunks_used=personal_count,
+        sources=sources,
+    )
+
+
 @router.post("/analyze", response_model=ComparisonResult)
 async def analyze_documents(
     request: CompareRequest,
@@ -44,40 +78,64 @@ async def analyze_documents(
 
     analyzer = SemanticAnalyzer(
         base_url=settings.openai_base_url,
-        api_key=settings.openai_api_key, 
+        api_key=settings.openai_api_key,
         model=settings.openai_model,
     )
-    emb_svc   = EmbeddingService(
+    emb_svc = EmbeddingService(
         base_url=settings.openai_embedding_base_url,
         api_key=settings.openai_embedding_api_key,
         model=settings.openai_embedding_model,
     )
-    aligner   = SectionAligner(embedding_service=emb_svc)
+    aligner = SectionAligner(embedding_service=emb_svc)
 
-    # ── Step 1: Text diff ───────────────────────────────────────────────────────
+    # ── Step 1: Text diff ────────────────────────────────────────────────────────
     diff_chunks = await asyncio.get_event_loop().run_in_executor(
         None, diff_service.compute_paragraph_diff, doc1["text"], doc2["text"]
     )
     similarity = diff_service.get_similarity_ratio(doc1["text"], doc2["text"])
 
-    # ── Step 2: Semantic analysis ───────────────────────────────
+    # ── Step 2: RAG retrieval ────────────────────────────────────────────────────
+    rag_context_str     = ""
+    rag_context_summary = None
+    try:
+        from routers.knowledge_base import get_rag_service
+        rag_service = get_rag_service()
+        rag_query   = _build_rag_query(doc1, doc2)
+        rag_hits    = await rag_service.query(
+            query_text=rag_query,
+            user_id=current_user.id,
+            n_results=settings.rag_top_k,
+            score_threshold=settings.rag_score_threshold,
+        )
+        if rag_hits:
+            rag_context_str     = rag_service.format_context_for_prompt(
+                rag_hits, max_chars=settings.rag_max_context_chars
+            )
+            rag_context_summary = _build_rag_context_summary(rag_hits)
+    except Exception:
+        # RAG is best-effort; never block a comparison
+        pass
+
+    # ── Step 3: Semantic analysis (with RAG grounding) ───────────────────────────
     semantic_changes = await analyzer.analyze_changes(
         diff_chunks=diff_chunks,
         doc1_text=doc1["text"],
         doc2_text=doc2["text"],
         doc1_name=doc1["filename"],
         doc2_name=doc2["filename"],
+        rag_context=rag_context_str or None,
     )
 
-    # ── Step 3: Executive summary ───────────────────────────────────────────────
+    # ── Step 4: Executive summary (with RAG grounding) ───────────────────────────
     summary = await analyzer.generate_executive_summary(
         semantic_changes=semantic_changes,
         doc1_name=doc1["filename"],
         doc2_name=doc2["filename"],
         similarity_ratio=similarity,
+        rag_context=rag_context_str or None,
     )
 
-    # ── Step 4 (Phase 2): Section alignment via embeddings ──────────────────────
+    # ── Step 5: Section alignment via embeddings ─────────────────────────────────
     section_alignment = await aligner.align(doc1["text"], doc2["text"])
 
     section_analysis = SectionAnalysis(
@@ -129,9 +187,10 @@ async def analyze_documents(
         doc2_sections=doc2["sections"],
         section_analysis=section_analysis,
         text_similarity_ratio=similarity,
+        rag_context=rag_context_summary,
     )
 
-    # ── Persist ─────────────────────────────────────────────────────────────────
+    # ── Persist ──────────────────────────────────────────────────────────────────
     try:
         await crud.save_comparison(
             db=db,
@@ -144,9 +203,9 @@ async def analyze_documents(
             user_id=current_user.id,
         )
     except Exception:
-        pass  # don't fail the response if DB write fails
+        pass
 
-    _result_cache[comparison_id] = result
+    _result_cache[comparison_id]  = result
     _analysis_cache[comparison_id] = section_analysis
     return result
 
@@ -154,7 +213,7 @@ async def analyze_documents(
 @router.get("/history", response_model=list[ComparisonListItem])
 async def list_history(
     db: AsyncSession = Depends(get_db),
-    current_user: UserRecord = Depends(get_current_user)
+    current_user: UserRecord = Depends(get_current_user),
 ):
     records = await crud.list_comparisons(db, user_id=current_user.id)
     items = []
@@ -184,7 +243,6 @@ async def get_comparison(
 ):
     if comparison_id in _result_cache:
         cached = _result_cache[comparison_id]
-        # Verify ownership via DB
         record = await crud.get_comparison(db, comparison_id)
         if record and record.user_id and record.user_id != current_user.id:
             raise HTTPException(status_code=403, detail="Not your comparison")

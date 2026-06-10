@@ -15,7 +15,7 @@ class UserRecord(Base):
     created_at      = Column(DateTime, default=datetime.utcnow)
 
     comparisons = relationship("ComparisonRecord", back_populates="owner", lazy="selectin")
-
+    kb_documents = relationship("KnowledgeBaseDocumentRecord", foreign_keys="KnowledgeBaseDocumentRecord.uploaded_by",back_populates="uploader", lazy="selectin")
 
 class DocumentRecord(Base):
     __tablename__ = "documents"
@@ -71,3 +71,28 @@ class AnnotationRecord(Base):
 
     comparison = relationship("ComparisonRecord", back_populates="annotations", lazy="selectin")
 
+
+class KnowledgeBaseDocumentRecord(Base):
+    """
+    Metadata for each document added to the knowledge base.
+    Actual embeddings are stored in ChromaDB (not SQL).
+
+    scope:
+        "global"   — available to all users for regulatory grounding
+        "personal" — scoped to a single user for company-specific context
+    """
+    __tablename__ = "kb_documents"
+
+    id          = Column(String, primary_key=True, index=True)
+    filename    = Column(String, nullable=False)
+    description = Column(Text, nullable=True)
+    scope       = Column(String, nullable=False, index=True)   # "global" | "personal"
+    # uploader / owner
+    uploaded_by = Column(String, ForeignKey("users.id"), nullable=False, index=True)
+    # For personal docs only; null means global
+    user_id     = Column(String, ForeignKey("users.id"), nullable=True, index=True)
+    chunk_count = Column(Integer, default=0)
+    char_count  = Column(Integer, default=0)
+    created_at  = Column(DateTime, default=datetime.utcnow)
+
+    uploader    = relationship("UserRecord", foreign_keys=[uploaded_by], back_populates="kb_documents", lazy="selectin")

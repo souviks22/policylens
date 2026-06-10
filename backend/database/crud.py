@@ -3,7 +3,7 @@ from typing import Optional, List
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, delete, desc
 from database.models import (
-    DocumentRecord, ComparisonRecord, AnnotationRecord
+    DocumentRecord, ComparisonRecord, AnnotationRecord, KnowledgeBaseDocumentRecord
 )
 
 
@@ -138,3 +138,102 @@ async def delete_annotation(db: AsyncSession, annotation_id: str) -> bool:
     )
     await db.commit()
     return result.rowcount > 0
+
+
+# ── Knowledge Base ──────────────────────────────────────────────────────────────
+
+async def save_kb_document(
+    db: AsyncSession,
+    doc_id: str,
+    filename: str,
+    scope: str,
+    uploaded_by: str,
+    user_id: Optional[str],
+    chunk_count: int,
+    char_count: int,
+    description: Optional[str] = None,
+) -> KnowledgeBaseDocumentRecord:
+    record = KnowledgeBaseDocumentRecord(
+        id=doc_id,
+        filename=filename,
+        description=description,
+        scope=scope,
+        uploaded_by=uploaded_by,
+        user_id=user_id,
+        chunk_count=chunk_count,
+        char_count=char_count,
+    )
+    db.add(record)
+    await db.commit()
+    await db.refresh(record)
+    return record
+
+
+async def list_kb_documents(
+    db: AsyncSession,
+    scope: str = "all",          # "all" | "global" | "personal"
+    user_id: Optional[str] = None,
+) -> List[KnowledgeBaseDocumentRecord]:
+    """
+    List KB documents visible to the given user.
+    - scope="global"   → only global docs
+    - scope="personal" → only this user's personal docs
+    - scope="all"      → global docs + this user's personal docs
+    """
+    if scope == "global":
+        stmt = select(KnowledgeBaseDocumentRecord).where(
+            KnowledgeBaseDocumentRecord.scope == "global"
+        )
+    elif scope == "personal" and user_id:
+        stmt = select(KnowledgeBaseDocumentRecord).where(
+            KnowledgeBaseDocumentRecord.scope == "personal",
+            KnowledgeBaseDocumentRecord.user_id == user_id,
+        )
+    else:
+        # all: global + personal for this user
+        from sqlalchemy import or_
+        stmt = select(KnowledgeBaseDocumentRecord).where(
+            or_(
+                KnowledgeBaseDocumentRecord.scope == "global",
+                (
+                    (KnowledgeBaseDocumentRecord.scope == "personal") &
+                    (KnowledgeBaseDocumentRecord.user_id == user_id)
+                ) if user_id else False,
+            )
+        )
+    stmt = stmt.order_by(desc(KnowledgeBaseDocumentRecord.created_at))
+    result = await db.execute(stmt)
+    return list(result.scalars().all())
+
+
+async def get_kb_document(
+    db: AsyncSession, doc_id: str
+) -> Optional[KnowledgeBaseDocumentRecord]:
+    result = await db.execute(
+        select(KnowledgeBaseDocumentRecord).where(KnowledgeBaseDocumentRecord.id == doc_id)
+    )
+    return result.scalar_one_or_none()
+
+
+async def delete_kb_document(
+    db: AsyncSession,
+    doc_id: str,
+    requesting_user_id: str,
+) -> bool:
+    """
+    Delete a KB document. Global docs can be deleted by anyone (team tool).
+    Personal docs only by their owner.
+    """
+    record = await get_kb_document(db, doc_id)
+    if not record:
+        return False
+    if record.scope == "personal" and record.user_id != requesting_user_id:
+        return False
+
+    await db.execute(
+        delete(KnowledgeBaseDocumentRecord).where(
+            KnowledgeBaseDocumentRecord.id == doc_id
+        )
+    )
+    await db.commit()
+    return True

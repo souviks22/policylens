@@ -9,6 +9,7 @@ class Settings(BaseSettings):
         case_sensitive=False,
     )
 
+    environment: str = "development"
     openai_base_url: str
     openai_api_key: str
     openai_model: str
@@ -18,10 +19,16 @@ class Settings(BaseSettings):
     max_tokens: int
     cors_origins: str
     database_url: str = "sqlite+aiosqlite:///./policylens.db"
-    jwt_secret: str = "change-this-to-a-random-64-char-string"
-    jwt_algorithm: str = "HS256"
-    jwt_expire_minutes: int = 1440
-
+    jwt_secret: str
+    jwt_algorithm: str
+    jwt_expire_minutes: int
+    chroma_path: str = "./chroma_db"
+    chroma_api_key: str
+    chroma_tenant_id: str
+    chroma_database_name: str
+    rag_top_k: int
+    rag_score_threshold: float
+    rag_max_context_chars: int
 
 @lru_cache()
 def get_settings() -> Settings:
