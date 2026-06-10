@@ -205,7 +205,7 @@ export default function ComparisonChat({ comparisonId, doc1Name, doc2Name }: Pro
           "flex items-center justify-center",
           "transition-all duration-200",
           open
-            ? "bg-ink-800 border border-ink-600 text-ink-300"
+            ? "bg-ink-800 border border-ink-600 text-ink-300 hidden sm:flex"
             : "bg-amber-500 hover:bg-amber-400 text-ink-950",
         )}
       >

@@ -59,7 +59,7 @@ export default function ComparisonDashboard({ result, onReset }: Props) {
     <div className="grain min-h-screen flex flex-col">
 
       {/* Header */}
-      <header className="sticky top-0 z-40 border-b border-ink-800 bg-ink-950/90 backdrop-blur-md px-3 sm:px-6 py-3">
+      <header className="border-b border-ink-800 bg-ink-950/90 backdrop-blur-md px-3 sm:px-6 py-3">
         <div className="max-w-7xl mx-auto flex items-center gap-2 sm:gap-3 flex-wrap">
 
           <Link href="/" className="flex items-center gap-2">
@@ -89,12 +89,12 @@ export default function ComparisonDashboard({ result, onReset }: Props) {
                 onClick={() => handleExport(fmt)}
                 disabled={!!exporting}
                 title={`Download ${fmt.toUpperCase()} report`}
-                className="flex items-center gap-1 sm:gap-1.5 px-2 sm:px-3 py-1.5 rounded-lg text-xs bg-ink-800 text-ink-300 hover:bg-ink-700 hover:text-ink-100 disabled:opacity-40 transition-all"
+                className="flex flex-col sm:flex-row items-center gap-1 sm:gap-1.5 px-2 sm:px-3 py-1.5 rounded-lg text-xs bg-ink-800 text-ink-300 hover:bg-ink-700 hover:text-ink-100 disabled:opacity-40 transition-all"
               >
                 {exporting === fmt
                   ? <Loader2 className="w-3.5 h-3.5 animate-spin" />
                   : <FileDown className="w-3.5 h-3.5" />}
-                <span className="hidden sm:inline">{fmt.toUpperCase()}</span>
+                <span className="inline text-[5px] sm:text-base absolute bottom-0 sm:static ">{fmt.toUpperCase()}</span>
               </button>
             ))}
 
