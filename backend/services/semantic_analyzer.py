@@ -20,8 +20,8 @@ class SemanticAnalyzer:
     regulatory reference material.
     """
 
-    def __init__(self, base_url: str, api_key: str, model: str = "gpt-4o"):
-        self.client = AsyncOpenAI(base_url=base_url, api_key=api_key)
+    def __init__(self, api_key: str, model: str = "gpt-4o"):
+        self.client = AsyncOpenAI(api_key=api_key)
         self.model = model
         self._encoder = None
 
@@ -118,8 +118,6 @@ Return ONLY the JSON array, no other text."""
             response = await self.client.chat.completions.create(
                 model=self.model,
                 messages=[{"role": "user", "content": prompt}],
-                temperature=0.2,
-                max_tokens=4000,
             )
             raw = response.choices[0].message.content or "{}"
             parsed = json.loads(raw)
@@ -189,9 +187,6 @@ Return ONLY valid JSON, no other text."""
             response = await self.client.chat.completions.create(
                 model=self.model,
                 messages=[{"role": "user", "content": prompt}],
-                temperature=0.2,
-                max_tokens=1500,
-                response_format={"type": "json_object"},
             )
             raw  = response.choices[0].message.content or "{}"
             data = json.loads(raw)

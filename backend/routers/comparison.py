@@ -76,16 +76,8 @@ async def analyze_documents(
     doc1 = await get_document_data(request.doc1_id, db)
     doc2 = await get_document_data(request.doc2_id, db)
 
-    analyzer = SemanticAnalyzer(
-        base_url=settings.openai_base_url,
-        api_key=settings.openai_api_key,
-        model=settings.openai_model,
-    )
-    emb_svc = EmbeddingService(
-        base_url=settings.openai_embedding_base_url,
-        api_key=settings.openai_embedding_api_key,
-        model=settings.openai_embedding_model,
-    )
+    analyzer = SemanticAnalyzer(api_key=settings.openai_api_key, model=settings.openai_model)
+    emb_svc = EmbeddingService(api_key=settings.openai_api_key, model=settings.openai_embedding_model)
     aligner = SectionAligner(embedding_service=emb_svc)
 
     # ── Step 1: Text diff ────────────────────────────────────────────────────────

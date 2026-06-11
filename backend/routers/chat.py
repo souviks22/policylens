@@ -66,11 +66,7 @@ async def chat(
     result = await _load_result(comparison_id, current_user.id, db)
 
     settings = get_settings()
-    svc = ChatService(
-        base_url=settings.openai_base_url,
-        api_key=settings.openai_api_key,
-        model=settings.openai_model,
-    )
+    svc = ChatService(api_key=settings.openai_api_key, model=settings.openai_model)
 
     system_prompt = svc.build_system_prompt(result)
     messages      = [{"role": m.role, "content": m.content} for m in request.messages]

@@ -117,11 +117,7 @@ def get_rag_service() -> RAGService:
         else:
             chroma_client = None
 
-        emb_svc = EmbeddingService(
-            base_url=settings.openai_embedding_base_url,
-            api_key=settings.openai_embedding_api_key,
-            model=settings.openai_embedding_model,
-        )
+        emb_svc = EmbeddingService(api_key=settings.openai_api_key, model=settings.openai_embedding_model)
         _rag_service = RAGService(
             chroma_client=chroma_client,
             embedding_service=emb_svc,

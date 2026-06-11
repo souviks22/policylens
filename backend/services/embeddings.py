@@ -17,8 +17,8 @@ class EmbeddingService:
     All public methods are async-safe and batch-aware.
     """
 
-    def __init__(self, base_url: str, api_key: str, model: str):
-        self._client = AsyncOpenAI(base_url=base_url, api_key=api_key)
+    def __init__(self, api_key: str, model: str):
+        self._client = AsyncOpenAI(api_key=api_key)
         self._model = model
 
     # ── Public API ──────────────────────────────────────────────────────────────

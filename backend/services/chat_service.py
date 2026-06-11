@@ -20,15 +20,15 @@ MAX_SECTIONS = 25
 
 class ChatService:
 
-    def __init__(self, base_url: str, api_key: str, model: str = "gpt-4o"):
-        self._client = AsyncOpenAI(base_url=base_url, api_key=api_key)
+    def __init__(self, api_key: str, model: str = "gpt-4o"):
+        self._client = AsyncOpenAI(api_key=api_key)
         self._model  = model
 
     # ── Public ──────────────────────────────────────────────────────────────────
 
     def build_system_prompt(self, result: ComparisonResult) -> str:
         s = result.summary
-        sim    = round(result.text_similarity_ratio * 100, 1)
+        sim = round(result.text_similarity_ratio * 100, 1)
         struct = (
             round(result.section_analysis.overall_structural_similarity * 100, 1)
             if result.section_analysis else "N/A"
@@ -189,8 +189,6 @@ class ChatService:
             stream = await self._client.chat.completions.create(
                 model=self._model,
                 messages=openai_messages,
-                temperature=0.3,
-                max_tokens=512,
                 stream=True,
             )
 
