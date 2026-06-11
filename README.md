@@ -1,3 +1,6 @@
+![PolicyLens Home](https://drive.usercontent.google.com/download?id=1Jv1EEP3S8P0XIsuRJxV7sqa200RjdejA&export=view&authuser=0)
+
+
 # PolicyLens
 
 **AI-powered policy document comparison with semantic analysis, RAG grounding, and streaming chat.**
