@@ -89,7 +89,7 @@ export default function AnalyzingOverlay({ doc1, doc2 }: Props) {
           />
         </div>
         <p className="text-xs text-ink-600 text-center mt-3">
-          This typically takes 15–30 seconds
+          This typically takes a couple of minutes
         </p>
       </div>
     </div>

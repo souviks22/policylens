@@ -7,7 +7,7 @@ import type {
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
 const TOKEN_KEY = "pl_token";
 
-const api = axios.create({ baseURL: API_URL, timeout: 180_000 });
+const api = axios.create({ baseURL: API_URL, timeout: 600_000 });
 
 // Attach token to every axios call (mirrors the interceptor in AuthContext)
 api.interceptors.request.use((config) => {

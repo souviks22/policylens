@@ -21,7 +21,7 @@ export default function RagContextPanel({ ragContext }: Props) {
 
   if (!ragContext || ragContext.sources.length === 0) {
     return (
-      <div className="flex items-center gap-3 px-4 py-3 rounded-xl bg-ink-900 border border-ink-700 text-sm text-ink-500">
+      <div className="flex items-center gap-3 px-4 py-3 my-6 rounded-xl bg-ink-900 border border-ink-700 text-sm text-ink-500">
         <BookOpen className="w-4 h-4 text-ink-600 flex-shrink-0" />
         <span>
           No knowledge base context was used. Add documents to the{" "}
