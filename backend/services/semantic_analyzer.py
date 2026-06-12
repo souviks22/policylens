@@ -119,7 +119,6 @@ Return ONLY the JSON array, no other text."""
                 model=self.model,
                 messages=[{"role": "user", "content": prompt}],
                 temperature=0.2,
-                max_tokens=4000,
             )
             raw = response.choices[0].message.content or "{}"
             parsed = json.loads(raw)
@@ -190,7 +189,6 @@ Return ONLY valid JSON, no other text."""
                 model=self.model,
                 messages=[{"role": "user", "content": prompt}],
                 temperature=0.2,
-                max_tokens=1500,
                 response_format={"type": "json_object"},
             )
             raw  = response.choices[0].message.content or "{}"

@@ -16,7 +16,6 @@ class Settings(BaseSettings):
     openai_embedding_base_url: str
     openai_embedding_api_key: str
     openai_embedding_model: str
-    max_tokens: int
     cors_origins: str
     database_url: str = "sqlite+aiosqlite:///./policylens.db"
     jwt_secret: str
