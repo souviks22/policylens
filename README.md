@@ -5,7 +5,7 @@
 
 **AI-powered policy document comparison with semantic analysis, RAG grounding, and streaming chat.**
 
-PolicyLens is a full-stack application that takes two policy PDFs, runs a multi-stage analysis pipeline (text diff → RAG retrieval → GPT-4o semantic analysis → embedding-based section alignment), and surfaces a rich interactive dashboard with per-change impact scoring, a similarity heatmap, inline annotations, and a streaming chat interface grounded in the comparison context.
+PolicyLens is a full-stack application that takes two policy PDFs, runs a multi-stage analysis pipeline (text diff → RAG retrieval → Qwen semantic analysis → embedding-based section alignment), and surfaces a rich interactive dashboard with per-change impact scoring, a similarity heatmap, inline annotations, and a streaming chat interface grounded in the comparison context.
 
 ---
 
@@ -20,7 +20,7 @@ PolicyLens is a full-stack application that takes two policy PDFs, runs a multi-
 │  │  /login     │  │  FileDropZone → AnalyzingOverlay → Results       │   │
 │  │  AuthContext│  │                                                  │   │
 │  │  JWT Bearer │  │  ┌──────────────┐  ┌────────────────────────┐    │   │
-│  └─────────────┘  │  │ SemanticChgs │  │    SectionAnalysis     │    │   │
+│  └─────────────┘  │  │ SemanticChgs │  │   SectionAnalysis      │    │   │
 │                   │  │ DiffViewer   │  │   SimilarityMatrix     │    │   │
 │  ┌─────────────┐  │  │ ExecutiveSumm│  │   ComparisonChat (SSE) │    │   │
 │  │  History    │  │  │ Annotations  │  │   RagContextPanel      │    │   │
@@ -49,16 +49,16 @@ PolicyLens is a full-stack application that takes two policy PDFs, runs a multi-
 │    │    Query ChromaDB  →  global_kb  +  user_kb_{uid}               │    │
 │    │    Score-threshold filter  →  format_context_for_prompt()       │    │
 │    │                                                                 │    │
-│    │  Step 3: SemanticAnalyzer  (GPT-4o)                             │    │
+│    │  Step 3: SemanticAnalyzer  (Qwen3-Next-80B-A3B-Instruct)        │    │
 │    │    Diff description + RAG context → SemanticChange[]            │    │
 │    │    Fields: change_type, impact_level, compliance_impact,        │    │
 │    │            regulatory_impact, recommendations                   │    │
 │    │                                                                 │    │
-│    │  Step 4: Executive Summary  (GPT-4o)                            │    │
+│    │  Step 4: Executive Summary  (Qwen3-Next-80B-A3B-Instruct)       │    │
 │    │    Aggregated changes + RAG context → ComparisonSummary         │    │
 │    │    Fields: key_changes, risk_areas, compliance_flags            │    │
 │    │                                                                 │    │
-│    │  Step 5: SectionAligner  (EmbeddingService)                     │    │
+│    │  Step 5: SectionAligner  (BAAI/BGE-M3 Embedding)                │    │
 │    │    Heading extraction + batched embeddings                      │    │
 │    │    Cosine similarity matrix → SectionMatch[]                    │    │
 │    │    Detects: unchanged / modified / added / deleted / clones     │    │
@@ -70,7 +70,7 @@ PolicyLens is a full-stack application that takes two policy PDFs, runs a multi-
 │                                                                           │
 │  POST /api/chat/{comparison_id}  ──  SSE stream                           │
 │    ChatService builds grounded system prompt from ComparisonResult        │
-│    Streams GPT-4o tokens as text/event-stream                             │
+│    Streams LLM tokens as text/event-stream                                │
 │                                                                           │
 │  POST /api/kb/upload             GET  /api/kb/documents                   │
 │  DELETE /api/kb/documents/{id}   GET  /api/kb/search                      │
@@ -97,11 +97,11 @@ PolicyLens is a full-stack application that takes two policy PDFs, runs a multi-
                                    ┌──────────▼──────────┐
                                    │  OpenAI-compatible  │
                                    │  Embeddings API     │
-                                   │  (text-embedding-*) │
+                                   │  (baai/bge-m3)      │
                                    └─────────────────────┘
                     ┌───────────────────────────────────┐
                     │   OpenAI-compatible Chat API      │
-                    │   GPT-4o  (or any compatible LLM) │
+                    │   Qwen3-Next-80B-A3B-Instruct     │
                     │   Semantic analysis + chat + summ │
                     └───────────────────────────────────┘
 ```
@@ -117,10 +117,10 @@ PolicyLens is a full-stack application that takes two policy PDFs, runs a multi-
 
 **Multi-stage comparison pipeline**
 - **Text diff** — `difflib` paragraph-level diff with inline word-level highlighting for modified blocks; similarity ratio computed via `SequenceMatcher`
-- **RAG grounding** — ChromaDB queried against both global (regulatory) and personal knowledge bases before the LLM is called; retrieved chunks are prepended to the analysis prompt so GPT-4o grounds compliance interpretations in authoritative reference material
-- **Semantic analysis** — GPT-4o classifies each diff chunk by `change_type` (addition / deletion / modification / regulatory_update), assigns `impact_level` (high / medium / low), and generates `business_impact`, `compliance_impact`, `regulatory_impact`, and `recommendations`
-- **Executive summary** — separate GPT-4o call produces `key_changes`, `risk_areas`, and `compliance_flags` from the aggregated analysis
-- **Section alignment** — headings extracted from both documents, embedded with the embeddings API, cosine similarity matrix computed, Hungarian-algorithm-style greedy matching used to identify unchanged / modified / added / deleted sections and semantic clone pairs
+- **RAG grounding** — ChromaDB queried against both global (regulatory) and personal knowledge bases before the LLM is called; retrieved chunks are prepended to the analysis prompt so Qwen grounds compliance interpretations in authoritative reference material
+- **Semantic analysis** — Qwen classifies each diff chunk by `change_type` (addition / deletion / modification / regulatory_update), assigns `impact_level` (high / medium / low), and generates `business_impact`, `compliance_impact`, `regulatory_impact`, and `recommendations`
+- **Executive summary** — separate Qwen call produces `key_changes`, `risk_areas`, and `compliance_flags` from the aggregated analysis
+- **Section alignment** — headings extracted from both documents, embedded with the BGE model, cosine similarity matrix computed, Hungarian-algorithm-style greedy matching used to identify unchanged / modified / added / deleted sections and semantic clone pairs
 
 **Comparison dashboard**
 - Semantic changes list with impact badges and expandable per-change detail
@@ -159,8 +159,8 @@ PolicyLens is a full-stack application that takes two policy PDFs, runs a multi-
 | Frontend | Next.js 14 (App Router), React 18, TypeScript, Tailwind CSS |
 | UI components | lucide-react, framer-motion, react-diff-viewer-continued, react-dropzone, react-markdown |
 | Backend | FastAPI, Python 3.12, Uvicorn |
-| AI — chat/analysis | OpenAI-compatible API (GPT-4o by default) via `openai` SDK |
-| AI — embeddings | OpenAI-compatible embeddings API |
+| AI — chat/analysis | OpenAI-compatible API (Qwen by default) via `openai` SDK |
+| AI — embeddings | OpenAI-compatible embeddings API (BGE by default) |
 | Token counting | `tiktoken` (cl100k_base) |
 | Vector DB | ChromaDB (PersistentClient) |
 | Relational DB | SQLite (default, via `aiosqlite`) or Postgres (via `asyncpg`) |
@@ -198,7 +198,7 @@ policylens/
 │   │   └── knowledge_base.py    # /api/kb — upload, list, delete, search, stats
 │   └── services/
 │       ├── text_diff.py         # difflib paragraph + word diff
-│       ├── semantic_analyzer.py # GPT-4o semantic analysis + executive summary
+│       ├── semantic_analyzer.py # Qwen3-Next-80B-A3B-Instruct semantic analysis + executive summary
 │       ├── section_aligner.py   # Embedding-based section matching
 │       ├── embeddings.py        # Batched async embedding client
 │       ├── rag_service.py       # ChromaDB RAG — chunk, embed, query
@@ -299,10 +299,10 @@ All backend configuration is read from `backend/.env`:
 | `ENVIRONMENT` | `development` or `production` | `development` |
 | `OPENAI_BASE_URL` | Base URL for the chat API | `https://api.openai.com/v1` |
 | `OPENAI_API_KEY` | API key for chat completions | `sk-...` |
-| `OPENAI_MODEL` | Model name | `gpt-4o` |
+| `OPENAI_MODEL` | Model name | `qwen3-next-80b-a3b-instruct` |
 | `OPENAI_EMBEDDING_BASE_URL` | Base URL for the embeddings API | `https://api.openai.com/v1` |
 | `OPENAI_EMBEDDING_API_KEY` | API key for embeddings | `sk-...` |
-| `OPENAI_EMBEDDING_MODEL` | Embedding model name | `text-embedding-3-small` |
+| `OPENAI_EMBEDDING_MODEL` | Embedding model name | `baai/bge-m3` |
 | `MAX_TOKENS` | Max tokens per LLM response | `4096` |
 | `CORS_ORIGINS` | Comma-separated allowed origins | `http://localhost:3000` |
 | `DATABASE_URL` | SQLAlchemy async URL | `sqlite+aiosqlite:///./policylens.db` |
@@ -404,9 +404,9 @@ When you click **Analyze**, the backend runs five sequential steps:
 
 2. **RAG retrieval** (`RAGService`) — a query string is synthesised from the two documents' filenames and opening text. ChromaDB is queried against the global `regulatory_kb` collection (shared across all users) and the current user's `user_kb_{uid}` collection. Results below `RAG_SCORE_THRESHOLD` are discarded. The surviving chunks are formatted into a context block and injected into the LLM prompts in steps 3 and 4. This step is best-effort; a ChromaDB failure does not abort the comparison.
 
-3. **Semantic analysis** (`SemanticAnalyzer`) — the top-25 most significant diff chunks plus the RAG context are sent to GPT-4o. The model returns structured JSON with a `SemanticChange` per chunk: `change_type`, `impact_level` (high / medium / low), `business_impact`, `compliance_impact`, `regulatory_impact`, and `recommendations`. Token budget is managed with `tiktoken`.
+3. **Semantic analysis** (`SemanticAnalyzer`) — the top-25 most significant diff chunks plus the RAG context are sent to Qwen. The model returns structured JSON with a `SemanticChange` per chunk: `change_type`, `impact_level` (high / medium / low), `business_impact`, `compliance_impact`, `regulatory_impact`, and `recommendations`. Token budget is managed with `tiktoken`.
 
-4. **Executive summary** — a second GPT-4o call receives the aggregated semantic changes and RAG context and produces a `ComparisonSummary`: overall impact level, `key_changes` list, `risk_areas`, and `compliance_flags`.
+4. **Executive summary** — a second Qwen call receives the aggregated semantic changes and RAG context and produces a `ComparisonSummary`: overall impact level, `key_changes` list, `risk_areas`, and `compliance_flags`.
 
 5. **Section alignment** (`SectionAligner`) — headings are extracted from both documents via regex. Each heading + its content body is embedded with the embeddings API (batched, up to 64 texts per call). A full cosine similarity matrix is computed. Greedy matching assigns each section to its best counterpart above a similarity threshold, yielding a `SectionMatch[]` with `unchanged` / `modified` / `added` / `deleted` types plus `semantic_clone_pairs` for sections that are near-identical despite appearing in different positions.
 
